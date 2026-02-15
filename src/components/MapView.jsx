@@ -6,6 +6,7 @@ import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
+import CustomLabelPanel from './CustomLabelPanel'
 import { loadCountries, loadAdmin1, loadAdmin2, clearAdmin2Cache, getISO3, getISO3ByName, getCacheStats } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
@@ -90,6 +91,7 @@ export default function MapView() {
   const [overlays, setOverlays] = useState(saved?.overlays || [])
   const [labels, setLabels] = useState(saved?.labels || [])
   const [selectedId, setSelectedId] = useState(null)
+  const [selectedCustomLabelId, setSelectedCustomLabelId] = useState(null)
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -156,6 +158,7 @@ export default function MapView() {
     }
     setOverlays(prev => [...prev, overlay])
     setSelectedId(id)
+    setSelectedCustomLabelId(null)
 
     const layer = L.geoJSON(item.feature)
     setFitBounds(layer.getBounds())
@@ -181,6 +184,7 @@ export default function MapView() {
 
   const handleOverlayClick = useCallback((id) => {
     setSelectedId(id)
+    setSelectedCustomLabelId(null)
   }, [])
 
   const handleStyleUpdate = useCallback((id, updates) => {
@@ -210,6 +214,17 @@ export default function MapView() {
     )
   }, [])
 
+  const handleLabelClick = useCallback((labelId) => {
+    const label = labels.find(l => l.id === labelId)
+    if (label && label.overlayId === null) {
+      setSelectedCustomLabelId(labelId)
+      setSelectedId(null)
+    } else if (label) {
+      setSelectedId(label.overlayId)
+      setSelectedCustomLabelId(null)
+    }
+  }, [labels])
+
   const handleLabelMove = useCallback((labelId, position) => {
     setLabels(prev =>
       prev.map(l => (l.id === labelId ? { ...l, position } : l))
@@ -218,6 +233,7 @@ export default function MapView() {
 
   const handleRemoveLabel = useCallback((labelId) => {
     setLabels(prev => prev.filter(l => l.id !== labelId))
+    setSelectedCustomLabelId(prev => prev === labelId ? null : prev)
   }, [])
 
   const handleClearLabels = useCallback((overlayId) => {
@@ -246,6 +262,7 @@ export default function MapView() {
     admin2LoadedRef.current.clear()
     clearAdmin2Cache()
     setSelectedId(null)
+    setSelectedCustomLabelId(null)
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
@@ -286,6 +303,7 @@ export default function MapView() {
 
   const selectedOverlay = overlays.find(o => o.id === selectedId)
   const selectedLabels = labels.filter(l => l.overlayId === selectedId)
+  const selectedCustomLabel = selectedCustomLabelId ? labels.find(l => l.id === selectedCustomLabelId) : null
 
   return (
     <div className="w-full h-full relative">
@@ -301,7 +319,7 @@ export default function MapView() {
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
-        <LabelLayer labels={labels} onLabelMove={handleLabelMove} />
+        <LabelLayer labels={labels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
@@ -365,6 +383,14 @@ export default function MapView() {
         />
       )}
 
+      {selectedCustomLabel && (
+        <CustomLabelPanel
+          label={selectedCustomLabel}
+          onUpdate={handleLabelUpdate}
+          onRemove={handleRemoveLabel}
+        />
+      )}
+
       {overlays.length > 0 && (
         <div className="absolute top-4 right-4 z-[1000] w-56">
           <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 p-2">
@@ -374,7 +400,7 @@ export default function MapView() {
             {overlays.map(o => (
               <button
                 key={o.id}
-                onClick={() => setSelectedId(o.id)}
+                onClick={() => { setSelectedId(o.id); setSelectedCustomLabelId(null) }}
                 className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 transition-colors ${
                   selectedId === o.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
                 }`}

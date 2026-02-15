@@ -2,11 +2,13 @@ import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 
-export default function LabelLayer({ labels, onLabelMove }) {
+export default function LabelLayer({ labels, onLabelMove, onLabelClick }) {
   const map = useMap()
   const markersRef = useRef({})
   const onLabelMoveRef = useRef(onLabelMove)
   onLabelMoveRef.current = onLabelMove
+  const onLabelClickRef = useRef(onLabelClick)
+  onLabelClickRef.current = onLabelClick
 
   useEffect(() => {
     const currentIds = new Set(labels.map(l => l.id))
@@ -59,6 +61,10 @@ export default function LabelLayer({ labels, onLabelMove }) {
         marker.on('dragend', () => {
           const pos = marker.getLatLng()
           onLabelMoveRef.current(label.id, [pos.lat, pos.lng])
+        })
+
+        marker.on('click', () => {
+          onLabelClickRef.current?.(label.id)
         })
 
         marker.addTo(map)
