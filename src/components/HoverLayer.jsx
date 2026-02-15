@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -47,6 +47,13 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
     }
   }, [])
 
+  // Compute displayed items so the effect only re-runs when the actual
+  // visible data changes (avoids blink when admin1 loads while showing countries)
+  const items = useMemo(
+    () => shiftPressed ? admin1 : countries,
+    [shiftPressed, admin1, countries]
+  )
+
   // Build the interactive layer
   useEffect(() => {
     if (layerGroupRef.current) {
@@ -55,7 +62,6 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
     }
     hoveredLayerRef.current = null
 
-    const items = shiftPressed ? admin1 : countries
     if (!items || items.length === 0) return
 
     // Get names of already-selected overlays to skip
@@ -175,7 +181,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
         layerGroupRef.current = null
       }
     }
-  }, [map, shiftPressed, countries, admin1, overlays, onSelect, onCountryHover])
+  }, [map, items, overlays, onSelect, onCountryHover, shiftPressed])
 
   return null
 }
