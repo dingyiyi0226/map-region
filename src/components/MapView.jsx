@@ -6,7 +6,7 @@ import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
-import { loadCountries, loadAdmin1 } from '../data/geo'
+import { loadCountries, loadAdmin1, loadAdmin2, getISO3 } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
 
@@ -54,6 +54,9 @@ function getCentroid(feature) {
 export default function MapView() {
   const [countries, setCountries] = useState([])
   const [admin1, setAdmin1] = useState([])
+  const [admin2, setAdmin2] = useState([])
+  const [admin2LoadingCount, setAdmin2LoadingCount] = useState(0)
+  const admin2LoadedRef = useRef(new Set())
   const [overlays, setOverlays] = useState(saved?.overlays || [])
   const [labels, setLabels] = useState(saved?.labels || [])
   const [selectedId, setSelectedId] = useState(null)
@@ -74,9 +77,40 @@ export default function MapView() {
     saveData(overlays, labels)
   }, [overlays, labels])
 
+  const findISO3ForCountry = useCallback((countryName) => {
+    const match = admin1.find(
+      a => a.country && a.country.toLowerCase() === countryName.toLowerCase()
+    )
+    return match ? getISO3(match.iso_a2) : null
+  }, [admin1])
+
+  const triggerAdmin2Load = useCallback((iso3) => {
+    if (!iso3 || admin2LoadedRef.current.has(iso3)) return
+    admin2LoadedRef.current.add(iso3)
+    setAdmin2LoadingCount(c => c + 1)
+    loadAdmin2(iso3).then(features => {
+      if (features.length > 0) {
+        setAdmin2(prev => [...prev, ...features])
+      }
+      setAdmin2LoadingCount(c => c - 1)
+    })
+  }, [])
+
+  const handleCountryHit = useCallback((countryName) => {
+    const iso3 = findISO3ForCountry(countryName)
+    triggerAdmin2Load(iso3)
+  }, [findISO3ForCountry, triggerAdmin2Load])
+
   const handleSelect = useCallback((item) => {
     const id = nextId++
-    const name = item.kind === 'subdivision' ? `${item.name}, ${item.country}` : item.name
+    let name
+    if (item.kind === 'admin2') {
+      name = `${item.name}, ${item.admin1Name}, ${item.country}`
+    } else if (item.kind === 'subdivision') {
+      name = `${item.name}, ${item.country}`
+    } else {
+      name = item.name
+    }
     const overlay = {
       id,
       name,
@@ -94,7 +128,13 @@ export default function MapView() {
 
     const layer = L.geoJSON(item.feature)
     setFitBounds(layer.getBounds())
-  }, [])
+
+    // Trigger A: load admin2 when a country is selected
+    if (item.kind === 'country') {
+      const iso3 = findISO3ForCountry(item.name)
+      triggerAdmin2Load(iso3)
+    }
+  }, [findISO3ForCountry, triggerAdmin2Load])
 
   const handleOverlayClick = useCallback((id) => {
     setSelectedId(id)
@@ -206,7 +246,10 @@ export default function MapView() {
       <SearchPanel
         countries={countries}
         admin1={admin1}
+        admin2={admin2}
+        admin2Loading={admin2LoadingCount > 0}
         onSelect={handleSelect}
+        onCountryHit={handleCountryHit}
       />
 
       <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-2">
