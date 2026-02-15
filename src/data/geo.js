@@ -1,5 +1,5 @@
 import * as topojson from 'topojson-client'
-import { normalizeCountryName, getISO3ForCountry } from './countryMappings'
+import { normalizeCountryName, getISO3ForCountry, getCountryForISO3 } from './countryMappings'
 export { getISO3ForCountry }
 
 // --- Antimeridian fix: split polygons that cross the 180°/-180° boundary ---
@@ -139,7 +139,11 @@ export async function loadAdmin1(iso3) {
   const promise = (async () => {
     try {
       const res = await fetch(`${ADMIN1_BASE_URL}/gadm36_${iso3}_1.json`)
-      if (!res.ok) return []
+      if (!res.ok) {
+        console.info(`[geo] No admin1 data available for ${getCountryForISO3(iso3)} (${iso3})`)
+
+        return []
+      }
       const geo = await res.json()
 
       const features = geo.features
@@ -214,7 +218,10 @@ export async function loadAdmin2(iso3) {
   const promise = (async () => {
     try {
       const res = await fetch(`${ADMIN2_BASE_URL}/gadm36_${iso3}_2.json`)
-      if (!res.ok) return []
+      if (!res.ok) {
+        console.info(`[geo] No admin2 data available for ${getCountryForISO3(iso3)} (${iso3})`)
+        return []
+      }
       const geo = await res.json()
 
       const features = geo.features

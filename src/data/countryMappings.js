@@ -118,3 +118,11 @@ const GADM_TO_ISO3 = Object.fromEntries(
 export function getISO3ForCountry(countryName) {
   return COUNTRY_TO_ISO3[countryName] || GADM_TO_ISO3[countryName] || null
 }
+
+const ISO3_TO_COUNTRY = Object.fromEntries(
+  Object.entries(COUNTRY_TO_ISO3).map(([name, iso3]) => [iso3, name])
+)
+
+export function getCountryForISO3(iso3) {
+  return ISO3_TO_COUNTRY[iso3] || iso3
+}
