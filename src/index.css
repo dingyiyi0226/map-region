@@ -15,7 +15,8 @@ html, body, #root {
   background: #f8f9fa;
 }
 
-.hover-label {
+.hover-label,
+.custom-label {
   background: none !important;
   border: none !important;
   overflow: visible !important;

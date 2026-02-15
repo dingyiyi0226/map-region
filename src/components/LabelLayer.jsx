@@ -38,6 +38,9 @@ export default function LabelLayer({ labels, onLabelMove, onLabelClick }) {
         const icon = L.divIcon({
           className: 'custom-label',
           html: `<div class="label-text" style="
+            position: absolute;
+            left: 0;
+            top: 0;
             font-size: ${label.fontSize}px;
             color: ${label.color};
             font-family: 'Roboto', sans-serif;
@@ -46,7 +49,7 @@ export default function LabelLayer({ labels, onLabelMove, onLabelClick }) {
             text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
             cursor: grab;
             user-select: none;
-            transform: translate(-50%, -50%);
+            translate: -50% -50%;
           ">${label.text}</div>`,
           iconSize: [0, 0],
           iconAnchor: [0, 0],
