@@ -23,6 +23,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
   const [shiftPressed, setShiftPressed] = useState(false)
   const layerGroupRef = useRef(null)
   const hoveredLayerRef = useRef(null)
+  const hoverLabelRef = useRef(null)
 
   // Track Shift key
   useEffect(() => {
@@ -66,16 +67,36 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
       const layer = L.geoJSON(item.feature, { style: TRANSPARENT_STYLE })
 
       layer.eachLayer(sub => {
-        sub.on('mouseover', () => {
+        sub.on('mouseover', (e) => {
           if (hoveredLayerRef.current && hoveredLayerRef.current !== sub) {
             hoveredLayerRef.current.setStyle(TRANSPARENT_STYLE)
           }
           sub.setStyle(HOVER_STYLE)
           sub.bringToFront()
           hoveredLayerRef.current = sub
+          // Show region name label following cursor
+          if (hoverLabelRef.current) {
+            map.removeLayer(hoverLabelRef.current)
+          }
+          const icon = L.divIcon({
+            className: 'hover-label',
+            html: `<div class="hover-label-text">${item.name}</div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          })
+          hoverLabelRef.current = L.marker(e.latlng, {
+            icon,
+            interactive: false,
+          }).addTo(map)
           // Preload admin1 subdivisions when hovering a country
           if (!shiftPressed && onCountryHover) {
             onCountryHover(item.name)
+          }
+        })
+
+        sub.on('mousemove', (e) => {
+          if (hoverLabelRef.current) {
+            hoverLabelRef.current.setLatLng(e.latlng)
           }
         })
 
@@ -83,6 +104,10 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
           sub.setStyle(TRANSPARENT_STYLE)
           if (hoveredLayerRef.current === sub) {
             hoveredLayerRef.current = null
+          }
+          if (hoverLabelRef.current) {
+            map.removeLayer(hoverLabelRef.current)
+            hoverLabelRef.current = null
           }
         })
 
@@ -107,6 +132,10 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
     layerGroupRef.current = group
 
     return () => {
+      if (hoverLabelRef.current) {
+        map.removeLayer(hoverLabelRef.current)
+        hoverLabelRef.current = null
+      }
       if (layerGroupRef.current) {
         map.removeLayer(layerGroupRef.current)
         layerGroupRef.current = null

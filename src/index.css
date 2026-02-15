@@ -14,3 +14,23 @@ html, body, #root {
   height: 100%;
   background: #f8f9fa;
 }
+
+.hover-label {
+  background: none !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+.hover-label-text {
+  position: absolute;
+  left: 0;
+  bottom: 16px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(31, 41, 55, 0.45);
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
+  translate: -50% 0;
+}
