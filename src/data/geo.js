@@ -1,4 +1,6 @@
 import * as topojson from 'topojson-client'
+import { normalizeCountryName, getISO3ForCountry } from './countryMappings'
+export { getISO3ForCountry }
 
 // --- Antimeridian fix: split polygons that cross the 180°/-180° boundary ---
 
@@ -111,76 +113,6 @@ const admin1Loading = new Map()
 const admin2Cache = new Map()
 const admin2Loading = new Map()
 
-// Map world-atlas country names to ISO 3166-1 alpha-3 codes
-const COUNTRY_TO_ISO3 = {
-  'Afghanistan': 'AFG','Albania': 'ALB','Algeria': 'DZA','American Samoa': 'ASM',
-  'Andorra': 'AND','Angola': 'AGO','Anguilla': 'AIA','Antigua and Barb.': 'ATG',
-  'Argentina': 'ARG','Armenia': 'ARM','Aruba': 'ABW','Australia': 'AUS',
-  'Austria': 'AUT','Azerbaijan': 'AZE','Bahamas': 'BHS','Bahrain': 'BHR',
-  'Bangladesh': 'BGD','Barbados': 'BRB','Belarus': 'BLR','Belgium': 'BEL',
-  'Belize': 'BLZ','Benin': 'BEN','Bermuda': 'BMU','Bhutan': 'BTN',
-  'Bolivia': 'BOL','Bosnia and Herz.': 'BIH','Botswana': 'BWA',
-  'Br. Indian Ocean Ter.': 'IOT','Brazil': 'BRA','British Virgin Is.': 'VGB',
-  'Brunei': 'BRN','Bulgaria': 'BGR','Burkina Faso': 'BFA','Burundi': 'BDI',
-  'Cabo Verde': 'CPV','Cambodia': 'KHM','Cameroon': 'CMR','Canada': 'CAN',
-  'Cayman Is.': 'CYM','Central African Rep.': 'CAF','Chad': 'TCD',
-  'Chile': 'CHL','China': 'CHN','Colombia': 'COL','Comoros': 'COM',
-  'Congo': 'COG','Cook Is.': 'COK','Costa Rica': 'CRI','Croatia': 'HRV',
-  'Cuba': 'CUB','Curaçao': 'CUW','Cyprus': 'CYP','Czechia': 'CZE',
-  "Côte d'Ivoire": 'CIV','Dem. Rep. Congo': 'COD','Denmark': 'DNK',
-  'Djibouti': 'DJI','Dominica': 'DMA','Dominican Rep.': 'DOM',
-  'Ecuador': 'ECU','Egypt': 'EGY','El Salvador': 'SLV','Eq. Guinea': 'GNQ',
-  'Eritrea': 'ERI','Estonia': 'EST','Ethiopia': 'ETH','eSwatini': 'SWZ',
-  'Faeroe Is.': 'FRO','Falkland Is.': 'FLK','Fiji': 'FJI','Finland': 'FIN',
-  'Fr. Polynesia': 'PYF','Fr. S. Antarctic Lands': 'ATF','France': 'FRA',
-  'Gabon': 'GAB','Gambia': 'GMB','Georgia': 'GEO','Germany': 'DEU',
-  'Ghana': 'GHA','Greece': 'GRC','Greenland': 'GRL','Grenada': 'GRD',
-  'Guam': 'GUM','Guatemala': 'GTM','Guernsey': 'GGY','Guinea': 'GIN',
-  'Guinea-Bissau': 'GNB','Guyana': 'GUY','Haiti': 'HTI','Honduras': 'HND',
-  'Hong Kong': 'HKG','Hungary': 'HUN','Iceland': 'ISL','India': 'IND',
-  'Indonesia': 'IDN','Iran': 'IRN','Iraq': 'IRQ','Ireland': 'IRL',
-  'Isle of Man': 'IMN','Israel': 'ISR','Italy': 'ITA','Jamaica': 'JAM',
-  'Japan': 'JPN','Jersey': 'JEY','Jordan': 'JOR','Kazakhstan': 'KAZ',
-  'Kenya': 'KEN','Kiribati': 'KIR','Kosovo': 'XKO','Kuwait': 'KWT',
-  'Kyrgyzstan': 'KGZ','Laos': 'LAO','Latvia': 'LVA','Lebanon': 'LBN',
-  'Lesotho': 'LSO','Liberia': 'LBR','Libya': 'LBY','Liechtenstein': 'LIE',
-  'Lithuania': 'LTU','Luxembourg': 'LUX','Macao': 'MAC','Macedonia': 'MKD',
-  'Madagascar': 'MDG','Malawi': 'MWI','Malaysia': 'MYS','Maldives': 'MDV',
-  'Mali': 'MLI','Malta': 'MLT','Marshall Is.': 'MHL','Mauritania': 'MRT',
-  'Mauritius': 'MUS','Mexico': 'MEX','Micronesia': 'FSM','Moldova': 'MDA',
-  'Monaco': 'MCO','Mongolia': 'MNG','Montenegro': 'MNE','Morocco': 'MAR',
-  'Mozambique': 'MOZ','Myanmar': 'MMR','N. Mariana Is.': 'MNP',
-  'N. Cyprus': 'CYP','Namibia': 'NAM','Nauru': 'NRU','Nepal': 'NPL',
-  'Netherlands': 'NLD','New Caledonia': 'NCL','New Zealand': 'NZL',
-  'Nicaragua': 'NIC','Niger': 'NER','Nigeria': 'NGA','Niue': 'NIU',
-  'Norfolk Island': 'NFK','North Korea': 'PRK','Norway': 'NOR','Oman': 'OMN',
-  'Pakistan': 'PAK','Palau': 'PLW','Palestine': 'PSE','Panama': 'PAN',
-  'Papua New Guinea': 'PNG','Paraguay': 'PRY','Peru': 'PER',
-  'Philippines': 'PHL','Poland': 'POL','Portugal': 'PRT','Puerto Rico': 'PRI',
-  'Qatar': 'QAT','Romania': 'ROU','Russia': 'RUS','Rwanda': 'RWA',
-  'S. Sudan': 'SSD','Saint Helena': 'SHN','Saint Lucia': 'LCA',
-  'Samoa': 'WSM','San Marino': 'SMR','Saudi Arabia': 'SAU','Senegal': 'SEN',
-  'Serbia': 'SRB','Seychelles': 'SYC','Sierra Leone': 'SLE',
-  'Singapore': 'SGP','Sint Maarten': 'SXM','Slovakia': 'SVK',
-  'Slovenia': 'SVN','Solomon Is.': 'SLB','Somalia': 'SOM','Somaliland': 'SOM',
-  'South Africa': 'ZAF','South Korea': 'KOR','Spain': 'ESP',
-  'Sri Lanka': 'LKA','St-Barthélemy': 'BLM','St-Martin': 'MAF',
-  'St. Kitts and Nevis': 'KNA','St. Pierre and Miquelon': 'SPM',
-  'St. Vin. and Gren.': 'VCT','Sudan': 'SDN','Suriname': 'SUR',
-  'Sweden': 'SWE','Switzerland': 'CHE','Syria': 'SYR',
-  'São Tomé and Principe': 'STP','Taiwan': 'TWN','Tajikistan': 'TJK',
-  'Tanzania': 'TZA','Thailand': 'THA','Timor-Leste': 'TLS','Togo': 'TGO',
-  'Tonga': 'TON','Trinidad and Tobago': 'TTO','Tunisia': 'TUN',
-  'Turkey': 'TUR','Turkmenistan': 'TKM','Turks and Caicos Is.': 'TCA',
-  'Tuvalu': 'TUV','U.S. Virgin Is.': 'VIR','Uganda': 'UGA','Ukraine': 'UKR',
-  'United Arab Emirates': 'ARE','United Kingdom': 'GBR',
-  'United States of America': 'USA','Uruguay': 'URY','Uzbekistan': 'UZB',
-  'Vanuatu': 'VUT','Vatican': 'VAT','Venezuela': 'VEN','Vietnam': 'VNM',
-  'W. Sahara': 'ESH','Wallis and Futuna Is.': 'WLF',
-  'Yemen': 'YEM','Zambia': 'ZMB','Zimbabwe': 'ZWE',
-  'Åland': 'ALA',
-}
-
 
 export async function loadCountries() {
   if (countriesCache) return countriesCache
@@ -193,7 +125,7 @@ export async function loadCountries() {
     .filter(f => f.properties.name && f.properties.name !== 'Antarctica')
     .map(f => ({
       id: f.id,
-      name: f.properties.name,
+      name: normalizeCountryName(f.properties.name),
       feature: fixAntimeridian(f),
     }))
 
@@ -231,10 +163,6 @@ export async function loadAdmin1(iso3) {
 
   admin1Loading.set(iso3, promise)
   return promise
-}
-
-export function getISO3ForCountry(countryName) {
-  return COUNTRY_TO_ISO3[countryName] || null
 }
 
 export function clearSubdivisionCache() {
