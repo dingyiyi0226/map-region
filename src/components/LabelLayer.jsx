@@ -38,6 +38,7 @@ export default function LabelLayer({ labels, onLabelMove }) {
           html: `<div class="label-text" style="
             font-size: ${label.fontSize}px;
             color: ${label.color};
+            font-family: 'Roboto', sans-serif;
             font-weight: 600;
             white-space: nowrap;
             text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
