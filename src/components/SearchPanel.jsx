@@ -44,7 +44,10 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       ...countries.map(c => ({ ...c, kind: 'country' })),
       ...admin1.map(a => ({ ...a, kind: 'subdivision' })),
       ...admin2,
-    ].map(item => ({ ...item, display: displayName(item) }))
+    ].map(item => {
+      const display = displayName(item)
+      return { ...item, display, displayLower: display.toLowerCase() }
+    })
   }, [countries, admin1, admin2])
 
   useEffect(() => {
@@ -57,8 +60,6 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       return
     }
     const KIND_PRIORITY = { country: 0, subdivision: 1, admin2: 2 }
-    let items
-
     const q = query.trim().toLowerCase()
     const sortByKindThenName = (a, b) => {
       const pa = KIND_PRIORITY[a.kind] ?? 3
@@ -67,16 +68,14 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       return a.display.localeCompare(b.display)
     }
 
-    // Try prefix match first
-    items = allItems
-      .filter(item => item.display.toLowerCase().startsWith(q))
+    let items = allItems
+      .filter(item => item.displayLower.startsWith(q))
       .sort(sortByKindThenName)
       .slice(0, 12)
 
-    // Fall back to fuzzy match if no prefix results
     if (items.length === 0) {
       items = allItems
-        .map(item => ({ ...item, score: fuzzyScore(q, item.display.toLowerCase()) }))
+        .map(item => ({ ...item, score: fuzzyScore(q, item.displayLower) }))
         .filter(item => item.score > 0)
         .sort((a, b) => b.score - a.score || sortByKindThenName(a, b))
         .slice(0, 12)
@@ -85,18 +84,13 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
     setResults(items)
     setActiveIndex(-1)
 
-    // Trigger B: if results contain a country or subdivision, load admin2
-    const countryHit = items.find(item => item.kind === 'country')
-    if (countryHit && onCountryHit) {
-      onCountryHit(countryHit.name)
-    }
-    const subdivisionHit = items.find(item => item.kind === 'subdivision')
-    if (subdivisionHit && onCountryHit) {
-      onCountryHit(subdivisionHit.country)
-    }
-    const admin2Hit = items.find(item => item.kind === 'admin2')
-    if (admin2Hit && onCountryHit) {
-      onCountryHit(admin2Hit.country)
+    if (onCountryHit) {
+      const countriesToLoad = new Set()
+      for (const item of items) {
+        if (item.kind === 'country') countriesToLoad.add(item.name)
+        else countriesToLoad.add(item.country)
+      }
+      for (const c of countriesToLoad) onCountryHit(c)
     }
   }, [query, allItems, onCountryHit])
 
