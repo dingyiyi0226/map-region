@@ -13,7 +13,7 @@ function displayName(item) {
   return item.name
 }
 
-export default function SearchPanel({ countries, admin1, admin2 = [], admin2Loading, onSelect, onCountryHit }) {
+export default function SearchPanel({ countries, admin1, admin2 = [], admin2Loading, onSelect, onCountryHit, onAddCustomLabel }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
@@ -68,9 +68,9 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
   }
 
   return (
-    <div ref={panelRef} className="absolute top-4 left-4 z-[1000] w-80">
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60">
-        <div className="flex items-center px-3 py-2.5 gap-2">
+    <div ref={panelRef} className="absolute top-4 left-4 z-[1000] flex items-start gap-2">
+      <div className="w-80 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60">
+        <div className="flex items-center px-3 gap-2 h-9">
           <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -109,6 +109,16 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
           </div>
         )}
       </div>
+      <button
+        onClick={onAddCustomLabel}
+        title="Add custom text label"
+        className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 w-[38px] h-[38px] flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 11l2 2 2-2m-2-2v6" />
+        </svg>
+      </button>
     </div>
   )
 }

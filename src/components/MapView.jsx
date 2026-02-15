@@ -32,6 +32,12 @@ let nextLabelId = saved
   ? Math.max(0, ...saved.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
   : 1
 
+function MapRef({ mapRef }) {
+  const map = useMap()
+  useEffect(() => { mapRef.current = map }, [map, mapRef])
+  return null
+}
+
 function FitBounds({ bounds }) {
   const map = useMap()
 
@@ -218,6 +224,21 @@ export default function MapView() {
     setLabels(prev => prev.filter(l => l.overlayId !== overlayId))
   }, [])
 
+  const handleAddCustomLabel = useCallback(() => {
+    const map = mapRef.current
+    if (!map) return
+    const center = map.getCenter()
+    const label = {
+      id: `label-${nextLabelId++}`,
+      overlayId: null,
+      text: 'Label',
+      position: [center.lat, center.lng],
+      fontSize: 14,
+      color: '#1f2937',
+    }
+    setLabels(prev => [...prev, label])
+  }, [])
+
   const handleResetAll = useCallback(() => {
     setOverlays([])
     setLabels([])
@@ -234,6 +255,7 @@ export default function MapView() {
     if (selectedId === id) setSelectedId(null)
   }, [selectedId])
 
+  const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
   const [exporting, setExporting] = useState(false)
   const [resetHover, setResetHover] = useState(false)
@@ -280,6 +302,7 @@ export default function MapView() {
         />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
         <LabelLayer labels={labels} onLabelMove={handleLabelMove} />
+        <MapRef mapRef={mapRef} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
       </div>
@@ -291,6 +314,7 @@ export default function MapView() {
         admin2Loading={admin2LoadingCount > 0}
         onSelect={handleSelect}
         onCountryHit={handleCountryHit}
+        onAddCustomLabel={handleAddCustomLabel}
       />
 
       <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-2">
