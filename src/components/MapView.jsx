@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { toPng } from 'html-to-image'
 import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
@@ -301,34 +300,20 @@ export default function MapView() {
   }, [selectedId])
 
   const mapRef = useRef(null)
-  const mapContainerRef = useRef(null)
-  const [exporting, setExporting] = useState(false)
   const [resetHover, setResetHover] = useState(false)
   const [helpHover, setHelpHover] = useState(false)
+  const [hideUI, setHideUI] = useState(false)
+  const [hideUIHover, setHideUIHover] = useState(false)
 
-  const handleExport = useCallback(async () => {
-    const el = mapContainerRef.current
-    if (!el) return
-    setExporting(true)
-    try {
-      const dataUrl = await toPng(el, {
-        cacheBust: true,
-        pixelRatio: 2,
-        filter: (node) => {
-          if (node.classList?.contains('leaflet-control-attribution')) return false
-          return true
-        },
-      })
-      const link = document.createElement('a')
-      link.download = `map-region-${Date.now()}.png`
-      link.href = dataUrl
-      link.click()
-    } catch (err) {
-      console.error('Export failed:', err)
-    } finally {
-      setExporting(false)
+  useEffect(() => {
+    if (!hideUI) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return
+      setHideUI(false)
     }
-  }, [])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [hideUI])
 
   const selectedOverlay = overlays.find(o => o.id === selectedId)
   const selectedLabels = labels.filter(l => l.overlayId === selectedId)
@@ -336,7 +321,6 @@ export default function MapView() {
 
   return (
     <div className="w-full h-full relative">
-      <div ref={mapContainerRef} className="w-full h-full">
       <MapContainer
         center={[20, 0]}
         zoom={3}
@@ -351,14 +335,14 @@ export default function MapView() {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
-        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} />
+        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} disabled={hideUI} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
         <LabelLayer labels={labels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
-      </div>
 
+      {!hideUI && (<>
       <SearchPanel
         countries={countries}
         admin1={admin1}
@@ -402,17 +386,29 @@ export default function MapView() {
             </div>
           )}
         </div>
-        {overlays.length > 0 && (<>
+        <div
+          className="relative"
+          onMouseEnter={() => setHideUIHover(true)}
+          onMouseLeave={() => setHideUIHover(false)}
+        >
           <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-600 shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            onClick={() => setHideUI(true)}
+            className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18" />
             </svg>
-            {exporting ? 'Exporting...' : 'Export PNG'}
           </button>
+          {hideUIHover && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                Hide UI for screenshot (press any key to show)
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
+        {overlays.length > 0 && (<>
           <div
             className="relative"
             onMouseEnter={() => setResetHover(true)}
@@ -487,6 +483,7 @@ export default function MapView() {
           </div>
         </div>
       )}
+      </>)}
     </div>
   )
 }

@@ -9,7 +9,7 @@ An interactive web tool for visualizing and styling geographic regions on a map.
 - **Shift + Hover** - Hold Shift and hover to highlight individual subdivisions (states, provinces, etc.)
 - **Overlay Styling** - Customize fill color, stroke color, opacity, width, and dash style per overlay
 - **Custom Labels** - Add draggable text labels anchored to geographic coordinates, with configurable font size and color
-- **Export to PNG** - Export the current map view as a high-resolution PNG image
+- **Hide UI** - Hide all controls for a clean screenshot, press any key to restore
 - **Persistent State** - Overlays and labels are saved to localStorage and restored on reload
 - **Reset** - Clear all overlays, labels, and saved data with one click
 
@@ -35,7 +35,6 @@ npm run dev
 - Leaflet / react-leaflet
 - Tailwind CSS
 - Fuse.js (fuzzy search)
-- html-to-image (PNG export)
 
 ## Data Sources
 

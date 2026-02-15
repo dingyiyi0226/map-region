@@ -18,7 +18,7 @@ const TRANSPARENT_STYLE = {
   opacity: 0,
 }
 
-export default function HoverLayer({ countries, admin1, overlays, onSelect, onCountryHover }) {
+export default function HoverLayer({ countries, admin1, overlays, onSelect, onCountryHover, disabled }) {
   const map = useMap()
   const [shiftPressed, setShiftPressed] = useState(false)
   const layerGroupRef = useRef(null)
@@ -62,7 +62,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
     }
     hoveredLayerRef.current = null
 
-    if (!items || items.length === 0) return
+    if (!items || items.length === 0 || disabled) return
 
     // Get names of already-selected overlays to skip
     const selectedNames = new Set(overlays.map(o => o.name))
@@ -181,7 +181,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
         layerGroupRef.current = null
       }
     }
-  }, [map, items, overlays, onSelect, onCountryHover, shiftPressed])
+  }, [map, items, overlays, onSelect, onCountryHover, shiftPressed, disabled])
 
   return null
 }
