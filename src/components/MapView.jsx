@@ -277,6 +277,7 @@ export default function MapView() {
   const mapContainerRef = useRef(null)
   const [exporting, setExporting] = useState(false)
   const [resetHover, setResetHover] = useState(false)
+  const [helpHover, setHelpHover] = useState(false)
 
   const handleExport = useCallback(async () => {
     const el = mapContainerRef.current
@@ -343,6 +344,33 @@ export default function MapView() {
             Loading map data...
           </div>
         )}
+        <div
+          className="relative"
+          onMouseEnter={() => setHelpHover(true)}
+          onMouseLeave={() => setHelpHover(false)}
+        >
+          <button className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01" />
+            </svg>
+          </button>
+          {helpHover && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-gray-800 text-white text-[11px] rounded-lg px-3 py-2.5 shadow-lg w-56 leading-relaxed">
+                <div className="font-medium mb-1.5">How to use</div>
+                <div className="space-y-1 text-gray-300">
+                  <div><span className="text-white">Hover</span> a country to highlight it</div>
+                  <div><span className="text-white">Click</span> to select and add it</div>
+                  <div><span className="text-white">Hold CMD + hover</span> for subdivisions</div>
+                  <div><span className="text-white">Search</span> to find any region by name</div>
+                  <div><span className="text-white">Click a layer</span> to style it</div>
+                  <div><span className="text-white">Drag labels</span> to reposition them</div>
+                </div>
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
         {overlays.length > 0 && (<>
           <button
             onClick={handleExport}
