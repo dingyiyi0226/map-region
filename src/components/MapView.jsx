@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
+import LabelLayer from './LabelLayer'
 import { loadCountries, loadAdmin1 } from '../data/geo'
 
 let nextId = 1
+let nextLabelId = 1
 
 function FitBounds({ bounds }) {
   const map = useMap()
@@ -20,10 +22,18 @@ function FitBounds({ bounds }) {
   return null
 }
 
+function getCentroid(feature) {
+  const layer = L.geoJSON(feature)
+  const bounds = layer.getBounds()
+  const center = bounds.getCenter()
+  return [center.lat, center.lng]
+}
+
 export default function MapView() {
   const [countries, setCountries] = useState([])
   const [admin1, setAdmin1] = useState([])
   const [overlays, setOverlays] = useState([])
+  const [labels, setLabels] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -40,9 +50,10 @@ export default function MapView() {
 
   const handleSelect = useCallback((item) => {
     const id = nextId++
+    const name = item.kind === 'subdivision' ? `${item.name}, ${item.country}` : item.name
     const overlay = {
       id,
-      name: item.kind === 'subdivision' ? `${item.name}, ${item.country}` : item.name,
+      name,
       kind: item.kind,
       feature: item.feature,
       fillColor: '#3b82f6',
@@ -69,6 +80,46 @@ export default function MapView() {
     )
   }, [])
 
+  const handleAddLabel = useCallback((overlayId) => {
+    const overlay = overlays.find(o => o.id === overlayId)
+    if (!overlay) return
+    const position = getCentroid(overlay.feature)
+    const label = {
+      id: `label-${nextLabelId++}`,
+      overlayId,
+      text: overlay.name,
+      position,
+      fontSize: 14,
+      color: '#1f2937',
+    }
+    setLabels(prev => [...prev, label])
+  }, [overlays])
+
+  const handleLabelUpdate = useCallback((labelId, updates) => {
+    setLabels(prev =>
+      prev.map(l => (l.id === labelId ? { ...l, ...updates } : l))
+    )
+  }, [])
+
+  const handleLabelMove = useCallback((labelId, position) => {
+    setLabels(prev =>
+      prev.map(l => (l.id === labelId ? { ...l, position } : l))
+    )
+  }, [])
+
+  const handleRemoveLabel = useCallback((labelId) => {
+    setLabels(prev => prev.filter(l => l.id !== labelId))
+  }, [])
+
+  const handleRemoveOverlay = useCallback((id) => {
+    setOverlays(prev => prev.filter(x => x.id !== id))
+    setLabels(prev => prev.filter(l => l.overlayId !== id))
+    if (selectedId === id) setSelectedId(null)
+  }, [selectedId])
+
+  const selectedOverlay = overlays.find(o => o.id === selectedId)
+  const selectedLabels = labels.filter(l => l.overlayId === selectedId)
+
   return (
     <div className="w-full h-full relative">
       <MapContainer
@@ -82,6 +133,7 @@ export default function MapView() {
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
+        <LabelLayer labels={labels} onLabelMove={handleLabelMove} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
 
@@ -97,10 +149,14 @@ export default function MapView() {
         </div>
       )}
 
-      {selectedId && (
+      {selectedId && selectedOverlay && (
         <StylePanel
-          overlay={overlays.find(o => o.id === selectedId)}
+          overlay={selectedOverlay}
+          labels={selectedLabels}
           onUpdate={handleStyleUpdate}
+          onAddLabel={() => handleAddLabel(selectedId)}
+          onLabelUpdate={handleLabelUpdate}
+          onRemoveLabel={handleRemoveLabel}
         />
       )}
 
@@ -123,18 +179,17 @@ export default function MapView() {
                   style={{ backgroundColor: o.fillColor, borderColor: o.strokeColor }}
                 />
                 <span className="truncate">{o.name}</span>
-                <button
+                <span
                   onClick={e => {
                     e.stopPropagation()
-                    setOverlays(prev => prev.filter(x => x.id !== o.id))
-                    if (selectedId === o.id) setSelectedId(null)
+                    handleRemoveOverlay(o.id)
                   }}
-                  className="ml-auto text-gray-300 hover:text-gray-500 shrink-0"
+                  className="ml-auto text-gray-300 hover:text-gray-500 shrink-0 cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </span>
               </button>
             ))}
           </div>
