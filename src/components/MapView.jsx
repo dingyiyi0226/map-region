@@ -8,8 +8,29 @@ import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
 import { loadCountries, loadAdmin1 } from '../data/geo'
 
-let nextId = 1
-let nextLabelId = 1
+const STORAGE_KEY = 'map-region-data'
+
+function loadSavedData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+function saveData(overlays, labels) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ overlays, labels }))
+  } catch { /* ignore quota errors */ }
+}
+
+const saved = loadSavedData()
+let nextId = saved ? Math.max(0, ...saved.overlays.map(o => o.id)) + 1 : 1
+let nextLabelId = saved
+  ? Math.max(0, ...saved.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
+  : 1
 
 function FitBounds({ bounds }) {
   const map = useMap()
@@ -33,8 +54,8 @@ function getCentroid(feature) {
 export default function MapView() {
   const [countries, setCountries] = useState([])
   const [admin1, setAdmin1] = useState([])
-  const [overlays, setOverlays] = useState([])
-  const [labels, setLabels] = useState([])
+  const [overlays, setOverlays] = useState(saved?.overlays || [])
+  const [labels, setLabels] = useState(saved?.labels || [])
   const [selectedId, setSelectedId] = useState(null)
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -48,6 +69,10 @@ export default function MapView() {
       })
       .catch(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    saveData(overlays, labels)
+  }, [overlays, labels])
 
   const handleSelect = useCallback((item) => {
     const id = nextId++
