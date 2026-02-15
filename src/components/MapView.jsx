@@ -8,7 +8,7 @@ import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
 import CustomLabelPanel from './CustomLabelPanel'
 import HoverLayer from './HoverLayer'
-import { loadCountries, loadAdmin1, loadAdmin2, clearAdmin2Cache, getISO3, getISO3ByName, getCacheStats } from '../data/geo'
+import { loadCountries, loadAdmin1, loadAdmin2, clearSubdivisionCache, getISO3ForCountry, getCacheStats } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
 
@@ -92,6 +92,9 @@ function CacheTooltip({ visible }) {
         <div className="font-medium mb-1">Storage usage</div>
         <div>localStorage: {stats.localStorage}</div>
         <div>Overlays: {stats.overlays} | Labels: {stats.labels}</div>
+        {stats.admin1Countries > 0 && (
+          <div>Admin1 cache: {stats.admin1Features} regions ({stats.admin1Countries} countries)</div>
+        )}
         {stats.admin2Countries > 0 && (
           <div>Admin2 cache: {stats.admin2Features} districts ({stats.admin2Countries} countries)</div>
         )}
@@ -105,7 +108,8 @@ export default function MapView() {
   const [countries, setCountries] = useState([])
   const [admin1, setAdmin1] = useState([])
   const [admin2, setAdmin2] = useState([])
-  const [admin2LoadingCount, setAdmin2LoadingCount] = useState(0)
+  const admin1LoadedRef = useRef(new Set())
+  const [subdivisionLoadingCount, setSubdivisionLoadingCount] = useState(0)
   const admin2LoadedRef = useRef(new Set())
   const [overlays, setOverlays] = useState(saved?.overlays || [])
   const [labels, setLabels] = useState(saved?.labels || [])
@@ -115,10 +119,9 @@ export default function MapView() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([loadCountries(), loadAdmin1()])
-      .then(([c, a]) => {
+    loadCountries()
+      .then(c => {
         setCountries(c)
-        setAdmin1(a)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -128,30 +131,35 @@ export default function MapView() {
     saveData(overlays, labels)
   }, [overlays, labels])
 
-  const findISO3ForCountry = useCallback((countryName) => {
-    const match = admin1.find(
-      a => a.country && a.country.toLowerCase() === countryName.toLowerCase()
-    )
-    const iso3 = match ? getISO3(match.iso_a2) : null
-    return iso3 || getISO3ByName(countryName)
-  }, [admin1])
+  const triggerAdmin1Load = useCallback((iso3) => {
+    if (!iso3 || admin1LoadedRef.current.has(iso3)) return
+    admin1LoadedRef.current.add(iso3)
+    setSubdivisionLoadingCount(c => c + 1)
+    loadAdmin1(iso3).then(features => {
+      if (features.length > 0) {
+        setAdmin1(prev => [...prev, ...features])
+      }
+      setSubdivisionLoadingCount(c => c - 1)
+    })
+  }, [])
 
   const triggerAdmin2Load = useCallback((iso3) => {
     if (!iso3 || admin2LoadedRef.current.has(iso3)) return
     admin2LoadedRef.current.add(iso3)
-    setAdmin2LoadingCount(c => c + 1)
+    setSubdivisionLoadingCount(c => c + 1)
     loadAdmin2(iso3).then(features => {
       if (features.length > 0) {
         setAdmin2(prev => [...prev, ...features])
       }
-      setAdmin2LoadingCount(c => c - 1)
+      setSubdivisionLoadingCount(c => c - 1)
     })
   }, [])
 
   const handleCountryHit = useCallback((countryName) => {
-    const iso3 = findISO3ForCountry(countryName)
+    const iso3 = getISO3ForCountry(countryName)
+    triggerAdmin1Load(iso3)
     triggerAdmin2Load(iso3)
-  }, [findISO3ForCountry, triggerAdmin2Load])
+  }, [triggerAdmin1Load, triggerAdmin2Load])
 
   const handleSelect = useCallback((item) => {
     const id = nextId++
@@ -194,12 +202,11 @@ export default function MapView() {
     }
     setLabels(prev => [...prev, label])
 
-    // Trigger A: load admin2 when a country is selected
+    // Trigger A: load subdivisions when a country is selected
     if (item.kind === 'country') {
-      const iso3 = findISO3ForCountry(item.name)
-      triggerAdmin2Load(iso3)
+      handleCountryHit(item.name)
     }
-  }, [findISO3ForCountry, triggerAdmin2Load])
+  }, [handleCountryHit])
 
   const handleOverlayClick = useCallback((id) => {
     setSelectedId(id)
@@ -277,9 +284,11 @@ export default function MapView() {
   const handleResetAll = useCallback(() => {
     setOverlays([])
     setLabels([])
+    setAdmin1([])
     setAdmin2([])
+    admin1LoadedRef.current.clear()
     admin2LoadedRef.current.clear()
-    clearAdmin2Cache()
+    clearSubdivisionCache()
     setSelectedId(null)
     setSelectedCustomLabelId(null)
     localStorage.removeItem(STORAGE_KEY)
@@ -342,7 +351,7 @@ export default function MapView() {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
-        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} />
+        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
         <LabelLayer labels={labels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
@@ -354,7 +363,7 @@ export default function MapView() {
         countries={countries}
         admin1={admin1}
         admin2={admin2}
-        admin2Loading={admin2LoadingCount > 0}
+        admin2Loading={subdivisionLoadingCount > 0}
         onSelect={handleSelect}
         onCountryHit={handleCountryHit}
         onAddCustomLabel={handleAddCustomLabel}

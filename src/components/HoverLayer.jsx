@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -18,7 +18,7 @@ const TRANSPARENT_STYLE = {
   opacity: 0,
 }
 
-export default function HoverLayer({ countries, admin1, overlays, onSelect }) {
+export default function HoverLayer({ countries, admin1, overlays, onSelect, onCountryHover }) {
   const map = useMap()
   const [shiftPressed, setShiftPressed] = useState(false)
   const layerGroupRef = useRef(null)
@@ -73,6 +73,10 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect }) {
           sub.setStyle(HOVER_STYLE)
           sub.bringToFront()
           hoveredLayerRef.current = sub
+          // Preload admin1 subdivisions when hovering a country
+          if (!shiftPressed && onCountryHover) {
+            onCountryHover(item.name)
+          }
         })
 
         sub.on('mouseout', () => {
@@ -108,7 +112,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect }) {
         layerGroupRef.current = null
       }
     }
-  }, [map, shiftPressed, countries, admin1, overlays, onSelect])
+  }, [map, shiftPressed, countries, admin1, overlays, onSelect, onCountryHover])
 
   return null
 }

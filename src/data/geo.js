@@ -102,39 +102,85 @@ function fixAntimeridian(feature) {
 // --- End antimeridian fix ---
 
 const COUNTRIES_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json'
-const ADMIN1_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_1_states_provinces.geojson'
+const ADMIN1_BASE_URL = 'https://raw.githubusercontent.com/stephanietuerk/admin-boundaries/master/lo-res/Admin1_simp10'
 const ADMIN2_BASE_URL = 'https://raw.githubusercontent.com/stephanietuerk/admin-boundaries/master/lo-res/Admin2_simp05'
 
 let countriesCache = null
-let admin1Cache = null
+const admin1Cache = new Map()
+const admin1Loading = new Map()
 const admin2Cache = new Map()
 const admin2Loading = new Map()
 
-const ISO2_TO_ISO3 = {
-  AF:'AFG',AL:'ALB',DZ:'DZA',AS:'ASM',AD:'AND',AO:'AGO',AG:'ATG',AR:'ARG',AM:'ARM',AU:'AUS',
-  AT:'AUT',AZ:'AZE',BS:'BHS',BH:'BHR',BD:'BGD',BB:'BRB',BY:'BLR',BE:'BEL',BZ:'BLZ',BJ:'BEN',
-  BT:'BTN',BO:'BOL',BA:'BIH',BW:'BWA',BR:'BRA',BN:'BRN',BG:'BGR',BF:'BFA',BI:'BDI',CV:'CPV',
-  KH:'KHM',CM:'CMR',CA:'CAN',CF:'CAF',TD:'TCD',CL:'CHL',CN:'CHN',CO:'COL',KM:'COM',CG:'COG',
-  CD:'COD',CR:'CRI',CI:'CIV',HR:'HRV',CU:'CUB',CY:'CYP',CZ:'CZE',DK:'DNK',DJ:'DJI',DM:'DMA',
-  DO:'DOM',EC:'ECU',EG:'EGY',SV:'SLV',GQ:'GNQ',ER:'ERI',EE:'EST',SZ:'SWZ',ET:'ETH',FJ:'FJI',
-  FI:'FIN',FR:'FRA',GA:'GAB',GM:'GMB',GE:'GEO',DE:'DEU',GH:'GHA',GR:'GRC',GD:'GRD',GT:'GTM',
-  GN:'GIN',GW:'GNB',GY:'GUY',HT:'HTI',HN:'HND',HU:'HUN',IS:'ISL',IN:'IND',ID:'IDN',IR:'IRN',
-  IQ:'IRQ',IE:'IRL',IL:'ISR',IT:'ITA',JM:'JAM',JP:'JPN',JO:'JOR',KZ:'KAZ',KE:'KEN',KI:'KIR',
-  KP:'PRK',KR:'KOR',KW:'KWT',KG:'KGZ',LA:'LAO',LV:'LVA',LB:'LBN',LS:'LSO',LR:'LBR',LY:'LBY',
-  LI:'LIE',LT:'LTU',LU:'LUX',MG:'MDG',MW:'MWI',MY:'MYS',MV:'MDV',ML:'MLI',MT:'MLT',MH:'MHL',
-  MR:'MRT',MU:'MUS',MX:'MEX',FM:'FSM',MD:'MDA',MC:'MCO',MN:'MNG',ME:'MNE',MA:'MAR',MZ:'MOZ',
-  MM:'MMR',NA:'NAM',NR:'NRU',NP:'NPL',NL:'NLD',NZ:'NZL',NI:'NIC',NE:'NER',NG:'NGA',MK:'MKD',
-  NO:'NOR',OM:'OMN',PK:'PAK',PW:'PLW',PA:'PAN',PG:'PNG',PY:'PRY',PE:'PER',PH:'PHL',PL:'POL',
-  PT:'PRT',QA:'QAT',RO:'ROU',RU:'RUS',RW:'RWA',KN:'KNA',LC:'LCA',VC:'VCT',WS:'WSM',SM:'SMR',
-  ST:'STP',SA:'SAU',SN:'SEN',RS:'SRB',SC:'SYC',SL:'SLE',SG:'SGP',SK:'SVK',SI:'SVN',SB:'SLB',
-  SO:'SOM',ZA:'ZAF',SS:'SSD',ES:'ESP',LK:'LKA',SD:'SDN',SR:'SUR',SE:'SWE',CH:'CHE',SY:'SYR',
-  TW:'TWN',TJ:'TJK',TZ:'TZA',TH:'THA',TL:'TLS',TG:'TGO',TO:'TON',TT:'TTO',TN:'TUN',TR:'TUR',
-  TM:'TKM',TV:'TUV',UG:'UGA',UA:'UKR',AE:'ARE',GB:'GBR',US:'USA',UY:'URY',UZ:'UZB',VU:'VUT',
-  VE:'VEN',VN:'VNM',YE:'YEM',ZM:'ZMB',ZW:'ZWE',PS:'PSE',XK:'XKO',EH:'ESH',NC:'NCL',PF:'PYF',
-  GF:'GUF',GP:'GLP',MQ:'MTQ',RE:'REU',YT:'MYT',PM:'SPM',WF:'WLF',BL:'BLM',MF:'MAF',AW:'ABW',
-  CW:'CUW',SX:'SXM',BQ:'BES',FK:'FLK',GI:'GIB',GL:'GRL',FO:'FRO',AX:'ALA',JE:'JEY',GG:'GGY',
-  IM:'IMN',BM:'BMU',KY:'CYM',VG:'VGB',VI:'VIR',PR:'PRI',GU:'GUM',MP:'MNP',HK:'HKG',MO:'MAC',
+// Map world-atlas country names to ISO 3166-1 alpha-3 codes
+const COUNTRY_TO_ISO3 = {
+  'Afghanistan': 'AFG','Albania': 'ALB','Algeria': 'DZA','American Samoa': 'ASM',
+  'Andorra': 'AND','Angola': 'AGO','Anguilla': 'AIA','Antigua and Barb.': 'ATG',
+  'Argentina': 'ARG','Armenia': 'ARM','Aruba': 'ABW','Australia': 'AUS',
+  'Austria': 'AUT','Azerbaijan': 'AZE','Bahamas': 'BHS','Bahrain': 'BHR',
+  'Bangladesh': 'BGD','Barbados': 'BRB','Belarus': 'BLR','Belgium': 'BEL',
+  'Belize': 'BLZ','Benin': 'BEN','Bermuda': 'BMU','Bhutan': 'BTN',
+  'Bolivia': 'BOL','Bosnia and Herz.': 'BIH','Botswana': 'BWA',
+  'Br. Indian Ocean Ter.': 'IOT','Brazil': 'BRA','British Virgin Is.': 'VGB',
+  'Brunei': 'BRN','Bulgaria': 'BGR','Burkina Faso': 'BFA','Burundi': 'BDI',
+  'Cabo Verde': 'CPV','Cambodia': 'KHM','Cameroon': 'CMR','Canada': 'CAN',
+  'Cayman Is.': 'CYM','Central African Rep.': 'CAF','Chad': 'TCD',
+  'Chile': 'CHL','China': 'CHN','Colombia': 'COL','Comoros': 'COM',
+  'Congo': 'COG','Cook Is.': 'COK','Costa Rica': 'CRI','Croatia': 'HRV',
+  'Cuba': 'CUB','Curaçao': 'CUW','Cyprus': 'CYP','Czechia': 'CZE',
+  "Côte d'Ivoire": 'CIV','Dem. Rep. Congo': 'COD','Denmark': 'DNK',
+  'Djibouti': 'DJI','Dominica': 'DMA','Dominican Rep.': 'DOM',
+  'Ecuador': 'ECU','Egypt': 'EGY','El Salvador': 'SLV','Eq. Guinea': 'GNQ',
+  'Eritrea': 'ERI','Estonia': 'EST','Ethiopia': 'ETH','eSwatini': 'SWZ',
+  'Faeroe Is.': 'FRO','Falkland Is.': 'FLK','Fiji': 'FJI','Finland': 'FIN',
+  'Fr. Polynesia': 'PYF','Fr. S. Antarctic Lands': 'ATF','France': 'FRA',
+  'Gabon': 'GAB','Gambia': 'GMB','Georgia': 'GEO','Germany': 'DEU',
+  'Ghana': 'GHA','Greece': 'GRC','Greenland': 'GRL','Grenada': 'GRD',
+  'Guam': 'GUM','Guatemala': 'GTM','Guernsey': 'GGY','Guinea': 'GIN',
+  'Guinea-Bissau': 'GNB','Guyana': 'GUY','Haiti': 'HTI','Honduras': 'HND',
+  'Hong Kong': 'HKG','Hungary': 'HUN','Iceland': 'ISL','India': 'IND',
+  'Indonesia': 'IDN','Iran': 'IRN','Iraq': 'IRQ','Ireland': 'IRL',
+  'Isle of Man': 'IMN','Israel': 'ISR','Italy': 'ITA','Jamaica': 'JAM',
+  'Japan': 'JPN','Jersey': 'JEY','Jordan': 'JOR','Kazakhstan': 'KAZ',
+  'Kenya': 'KEN','Kiribati': 'KIR','Kosovo': 'XKO','Kuwait': 'KWT',
+  'Kyrgyzstan': 'KGZ','Laos': 'LAO','Latvia': 'LVA','Lebanon': 'LBN',
+  'Lesotho': 'LSO','Liberia': 'LBR','Libya': 'LBY','Liechtenstein': 'LIE',
+  'Lithuania': 'LTU','Luxembourg': 'LUX','Macao': 'MAC','Macedonia': 'MKD',
+  'Madagascar': 'MDG','Malawi': 'MWI','Malaysia': 'MYS','Maldives': 'MDV',
+  'Mali': 'MLI','Malta': 'MLT','Marshall Is.': 'MHL','Mauritania': 'MRT',
+  'Mauritius': 'MUS','Mexico': 'MEX','Micronesia': 'FSM','Moldova': 'MDA',
+  'Monaco': 'MCO','Mongolia': 'MNG','Montenegro': 'MNE','Morocco': 'MAR',
+  'Mozambique': 'MOZ','Myanmar': 'MMR','N. Mariana Is.': 'MNP',
+  'N. Cyprus': 'CYP','Namibia': 'NAM','Nauru': 'NRU','Nepal': 'NPL',
+  'Netherlands': 'NLD','New Caledonia': 'NCL','New Zealand': 'NZL',
+  'Nicaragua': 'NIC','Niger': 'NER','Nigeria': 'NGA','Niue': 'NIU',
+  'Norfolk Island': 'NFK','North Korea': 'PRK','Norway': 'NOR','Oman': 'OMN',
+  'Pakistan': 'PAK','Palau': 'PLW','Palestine': 'PSE','Panama': 'PAN',
+  'Papua New Guinea': 'PNG','Paraguay': 'PRY','Peru': 'PER',
+  'Philippines': 'PHL','Poland': 'POL','Portugal': 'PRT','Puerto Rico': 'PRI',
+  'Qatar': 'QAT','Romania': 'ROU','Russia': 'RUS','Rwanda': 'RWA',
+  'S. Sudan': 'SSD','Saint Helena': 'SHN','Saint Lucia': 'LCA',
+  'Samoa': 'WSM','San Marino': 'SMR','Saudi Arabia': 'SAU','Senegal': 'SEN',
+  'Serbia': 'SRB','Seychelles': 'SYC','Sierra Leone': 'SLE',
+  'Singapore': 'SGP','Sint Maarten': 'SXM','Slovakia': 'SVK',
+  'Slovenia': 'SVN','Solomon Is.': 'SLB','Somalia': 'SOM','Somaliland': 'SOM',
+  'South Africa': 'ZAF','South Korea': 'KOR','Spain': 'ESP',
+  'Sri Lanka': 'LKA','St-Barthélemy': 'BLM','St-Martin': 'MAF',
+  'St. Kitts and Nevis': 'KNA','St. Pierre and Miquelon': 'SPM',
+  'St. Vin. and Gren.': 'VCT','Sudan': 'SDN','Suriname': 'SUR',
+  'Sweden': 'SWE','Switzerland': 'CHE','Syria': 'SYR',
+  'São Tomé and Principe': 'STP','Taiwan': 'TWN','Tajikistan': 'TJK',
+  'Tanzania': 'TZA','Thailand': 'THA','Timor-Leste': 'TLS','Togo': 'TGO',
+  'Tonga': 'TON','Trinidad and Tobago': 'TTO','Tunisia': 'TUN',
+  'Turkey': 'TUR','Turkmenistan': 'TKM','Turks and Caicos Is.': 'TCA',
+  'Tuvalu': 'TUV','U.S. Virgin Is.': 'VIR','Uganda': 'UGA','Ukraine': 'UKR',
+  'United Arab Emirates': 'ARE','United Kingdom': 'GBR',
+  'United States of America': 'USA','Uruguay': 'URY','Uzbekistan': 'UZB',
+  'Vanuatu': 'VUT','Vatican': 'VAT','Venezuela': 'VEN','Vietnam': 'VNM',
+  'W. Sahara': 'ESH','Wallis and Futuna Is.': 'WLF',
+  'Yemen': 'YEM','Zambia': 'ZMB','Zimbabwe': 'ZWE',
+  'Åland': 'ALA',
 }
+
 
 export async function loadCountries() {
   if (countriesCache) return countriesCache
@@ -154,51 +200,46 @@ export async function loadCountries() {
   return countriesCache
 }
 
-export async function loadAdmin1() {
-  if (admin1Cache) return admin1Cache
+export async function loadAdmin1(iso3) {
+  if (admin1Cache.has(iso3)) return admin1Cache.get(iso3)
+  if (admin1Loading.has(iso3)) return admin1Loading.get(iso3)
 
-  const res = await fetch(ADMIN1_URL)
-  const geo = await res.json()
+  const promise = (async () => {
+    try {
+      const res = await fetch(`${ADMIN1_BASE_URL}/gadm36_${iso3}_1.json`)
+      if (!res.ok) return []
+      const geo = await res.json()
 
-  admin1Cache = geo.features
-    .filter(f => f.properties.name)
-    .map(f => ({
-      name: f.properties.name,
-      country: f.properties.admin,
-      iso_a2: f.properties.iso_a2,
-      type: f.properties.type_en,
-      feature: fixAntimeridian(f),
-    }))
+      const features = geo.features
+        .filter(f => f.properties.NAME_1)
+        .map(f => ({
+          name: f.properties.NAME_1,
+          country: f.properties.NAME_0,
+          iso3,
+          type: f.properties.ENGTYPE_1,
+          feature: fixAntimeridian(f),
+        }))
 
-  return admin1Cache
+      admin1Cache.set(iso3, features)
+      return features
+    } catch {
+      return []
+    } finally {
+      admin1Loading.delete(iso3)
+    }
+  })()
+
+  admin1Loading.set(iso3, promise)
+  return promise
 }
 
-export function getSubdivisions(admin1Data, countryName) {
-  return admin1Data.filter(
-    d => d.country && d.country.toLowerCase() === countryName.toLowerCase()
-  )
+export function getISO3ForCountry(countryName) {
+  return COUNTRY_TO_ISO3[countryName] || null
 }
 
-// Fallback for countries where Natural Earth uses iso_a2: -99
-const NAME_TO_ISO3 = {
-  'taiwan': 'TWN',
-  'kosovo': 'XKO',
-  'western sahara': 'ESH',
-  'somaliland': 'SOL',
-  'northern cyprus': 'CYP',
-  'south ossetia': 'GEO',
-  'abkhazia': 'GEO',
-}
-
-export function getISO3(iso2) {
-  return ISO2_TO_ISO3[iso2] || null
-}
-
-export function getISO3ByName(countryName) {
-  return NAME_TO_ISO3[countryName.toLowerCase()] || null
-}
-
-export function clearAdmin2Cache() {
+export function clearSubdivisionCache() {
+  admin1Cache.clear()
+  admin1Loading.clear()
   admin2Cache.clear()
   admin2Loading.clear()
 }
@@ -217,6 +258,10 @@ export function getCacheStats() {
     }
   } catch { /* ignore */ }
 
+  let admin1Features = 0
+  admin1Cache.forEach(features => { admin1Features += features.length })
+  const admin1Countries = admin1Cache.size
+
   let admin2Features = 0
   admin2Cache.forEach(features => { admin2Features += features.length })
   const admin2Countries = admin2Cache.size
@@ -225,6 +270,8 @@ export function getCacheStats() {
     localStorage: fmt(lsBytes),
     overlays: JSON.parse(localStorage.getItem('map-region-data') || '{}').overlays?.length || 0,
     labels: JSON.parse(localStorage.getItem('map-region-data') || '{}').labels?.length || 0,
+    admin1Countries,
+    admin1Features,
     admin2Countries,
     admin2Features,
     fmt,
