@@ -119,6 +119,8 @@ export default function MapView() {
   const [loading, setLoading] = useState(true)
   const [useNativeNames, setUseNativeNames] = useState(false)
   const [nativeNameHover, setNativeNameHover] = useState(false)
+  const [labelsHidden, setLabelsHidden] = useState(false)
+  const [labelsHiddenHover, setLabelsHiddenHover] = useState(false)
 
   useEffect(() => {
     loadCountries()
@@ -396,7 +398,7 @@ export default function MapView() {
         />
         <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} disabled={hideUI} searchHoveredItem={searchHoveredItem} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
-        <LabelLayer labels={displayLabels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
+        <LabelLayer labels={labelsHidden ? [] : displayLabels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
@@ -485,6 +487,28 @@ export default function MapView() {
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 {useNativeNames ? 'Switch to English names' : 'Switch to native names'}
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
+        <div
+          className="relative"
+          onMouseEnter={() => setLabelsHiddenHover(true)}
+          onMouseLeave={() => setLabelsHiddenHover(false)}
+        >
+          <button
+            onClick={() => setLabelsHidden(v => !v)}
+            className={`bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors flex items-center justify-center ${labelsHidden ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          </button>
+          {labelsHiddenHover && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                {labelsHidden ? 'Show all labels' : 'Hide all labels'}
                 <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
               </div>
             </div>
