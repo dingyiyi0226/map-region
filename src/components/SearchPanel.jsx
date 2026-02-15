@@ -212,6 +212,10 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
               onChange={e => { setQuery(e.target.value); setOpen(true) }}
               onKeyDown={handleKeyDown}
               onFocus={() => setOpen(true)}
+              autoComplete="none"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               placeholder="Search country or region..."
               className="absolute inset-0 w-full bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
             />
