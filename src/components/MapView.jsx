@@ -117,6 +117,8 @@ export default function MapView() {
   const [selectedCustomLabelId, setSelectedCustomLabelId] = useState(null)
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [useNativeNames, setUseNativeNames] = useState(false)
+  const [nativeNameHover, setNativeNameHover] = useState(false)
 
   useEffect(() => {
     loadCountries()
@@ -192,10 +194,12 @@ export default function MapView() {
 
     // Auto-add label with the smallest-level name
     const position = getCentroid(item.feature)
+    const nlName = item.nlName || ''
     const label = {
       id: `label-${nextLabelId++}`,
       overlayId: id,
-      text: item.name,
+      text: useNativeNames && nlName ? nlName : item.name,
+      nlName,
       position,
       fontSize: 14,
       color: '#1f2937',
@@ -206,7 +210,7 @@ export default function MapView() {
     if (item.kind === 'country') {
       handleCountryHit(item.name)
     }
-  }, [handleCountryHit])
+  }, [handleCountryHit, useNativeNames])
 
   const handleOverlayClick = useCallback((id) => {
     setSelectedId(id)
@@ -227,6 +231,7 @@ export default function MapView() {
       id: `label-${nextLabelId++}`,
       overlayId,
       text: overlay.name,
+      nlName: '',
       position,
       fontSize: 14,
       color: '#1f2937',
@@ -236,9 +241,16 @@ export default function MapView() {
 
   const handleLabelUpdate = useCallback((labelId, updates) => {
     setLabels(prev =>
-      prev.map(l => (l.id === labelId ? { ...l, ...updates } : l))
+      prev.map(l => {
+        if (l.id !== labelId) return l
+        // When native names toggle is on, editing text should update nlName
+        if (useNativeNames && 'text' in updates && l.nlName) {
+          return { ...l, ...updates, nlName: updates.text }
+        }
+        return { ...l, ...updates }
+      })
     )
-  }, [])
+  }, [useNativeNames])
 
   const handleLabelClick = useCallback((labelId) => {
     const label = labels.find(l => l.id === labelId)
@@ -358,9 +370,13 @@ export default function MapView() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [hideUI])
 
+  const displayLabels = useNativeNames
+    ? labels.map(l => ({ ...l, text: l.nlName || l.text }))
+    : labels
+
   const selectedOverlay = overlays.find(o => o.id === selectedId)
-  const selectedLabels = labels.filter(l => l.overlayId === selectedId)
-  const selectedCustomLabel = selectedCustomLabelId ? labels.find(l => l.id === selectedCustomLabelId) : null
+  const selectedLabels = displayLabels.filter(l => l.overlayId === selectedId)
+  const selectedCustomLabel = selectedCustomLabelId ? displayLabels.find(l => l.id === selectedCustomLabelId) : null
 
   return (
     <div className="w-full h-full relative">
@@ -380,7 +396,7 @@ export default function MapView() {
         />
         <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} disabled={hideUI} searchHoveredItem={searchHoveredItem} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
-        <LabelLayer labels={labels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
+        <LabelLayer labels={displayLabels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
@@ -447,6 +463,28 @@ export default function MapView() {
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 Hide UI for screenshot (press any key to show)
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
+        <div
+          className="relative"
+          onMouseEnter={() => setNativeNameHover(true)}
+          onMouseLeave={() => setNativeNameHover(false)}
+        >
+          <button
+            onClick={() => setUseNativeNames(v => !v)}
+            className={`bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors flex items-center justify-center ${useNativeNames ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+          </button>
+          {nativeNameHover && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                {useNativeNames ? 'Switch to English names' : 'Switch to native names'}
                 <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
               </div>
             </div>

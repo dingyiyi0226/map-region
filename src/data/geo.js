@@ -146,6 +146,7 @@ export async function loadAdmin1(iso3) {
         .filter(f => f.properties.NAME_1)
         .map(f => ({
           name: f.properties.NAME_1,
+          nlName: f.properties.NL_NAME_1 || '',
           country: f.properties.NAME_0,
           iso3,
           type: f.properties.ENGTYPE_1,
@@ -220,6 +221,7 @@ export async function loadAdmin2(iso3) {
         .filter(f => f.properties.NAME_2)
         .map(f => ({
           name: f.properties.NAME_2,
+          nlName: f.properties.NL_NAME_2 || '',
           admin1Name: f.properties.NAME_1,
           country: f.properties.NAME_0,
           iso3,

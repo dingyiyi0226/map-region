@@ -177,6 +177,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
             : 'country'
           onSelect({
             name: item.name,
+            nlName: item.nlName || '',
             country: item.country,
             kind,
             feature: item.feature,
