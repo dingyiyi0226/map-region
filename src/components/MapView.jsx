@@ -303,6 +303,7 @@ export default function MapView() {
   const [resetHover, setResetHover] = useState(false)
   const [helpHover, setHelpHover] = useState(false)
   const [hideUI, setHideUI] = useState(false)
+  const [searchHoveredItem, setSearchHoveredItem] = useState(null)
   const [hideUIHover, setHideUIHover] = useState(false)
 
   useEffect(() => {
@@ -335,7 +336,7 @@ export default function MapView() {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
-        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} disabled={hideUI} />
+        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} disabled={hideUI} searchHoveredItem={searchHoveredItem} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
         <LabelLayer labels={labels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
@@ -351,6 +352,7 @@ export default function MapView() {
         onSelect={handleSelect}
         onCountryHit={handleCountryHit}
         onAddCustomLabel={handleAddCustomLabel}
+        onSearchHover={setSearchHoveredItem}
       />
 
       <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-2">

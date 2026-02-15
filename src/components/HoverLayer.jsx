@@ -18,11 +18,12 @@ const TRANSPARENT_STYLE = {
   opacity: 0,
 }
 
-export default function HoverLayer({ countries, admin1, overlays, onSelect, onCountryHover, disabled }) {
+export default function HoverLayer({ countries, admin1, overlays, onSelect, onCountryHover, disabled, searchHoveredItem }) {
   const map = useMap()
   const [shiftPressed, setShiftPressed] = useState(false)
   const layerGroupRef = useRef(null)
   const hoveredLayerRef = useRef(null)
+  const searchHighlightRef = useRef(null)
   const hoverLabelRef = useRef(null)
   const hoverShowTimerRef = useRef(null)
   const hoverHideTimerRef = useRef(null)
@@ -53,6 +54,26 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
     () => shiftPressed ? admin1 : countries,
     [shiftPressed, admin1, countries]
   )
+
+  // Highlight region from search dropdown hover
+  useEffect(() => {
+    if (searchHighlightRef.current) {
+      map.removeLayer(searchHighlightRef.current)
+      searchHighlightRef.current = null
+    }
+    if (!searchHoveredItem || !searchHoveredItem.feature) return
+
+    const layer = L.geoJSON(searchHoveredItem.feature, { style: HOVER_STYLE })
+    layer.addTo(map)
+    searchHighlightRef.current = layer
+
+    return () => {
+      if (searchHighlightRef.current) {
+        map.removeLayer(searchHighlightRef.current)
+        searchHighlightRef.current = null
+      }
+    }
+  }, [map, searchHoveredItem])
 
   // Build the interactive layer
   useEffect(() => {

@@ -13,7 +13,7 @@ function displayName(item) {
   return item.name
 }
 
-export default function SearchPanel({ countries, admin1, admin2 = [], admin2Loading, onSelect, onCountryHit, onAddCustomLabel }) {
+export default function SearchPanel({ countries, admin1, admin2 = [], admin2Loading, onSelect, onCountryHit, onAddCustomLabel, onSearchHover }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
@@ -64,6 +64,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
   }, [])
 
   function handleSelect(item) {
+    onSearchHover?.(null)
     onSelect(item)
     setQuery('')
     setResults([])
@@ -95,6 +96,8 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
               <button
                 key={`${item.kind}-${item.name}-${i}`}
                 onClick={() => handleSelect(item)}
+                onMouseEnter={() => onSearchHover?.(item)}
+                onMouseLeave={() => onSearchHover?.(null)}
                 className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm"
               >
                 <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
