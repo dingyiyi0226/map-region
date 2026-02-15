@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
+import { toPng } from 'html-to-image'
 import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
@@ -117,11 +118,39 @@ export default function MapView() {
     if (selectedId === id) setSelectedId(null)
   }, [selectedId])
 
+  const mapContainerRef = useRef(null)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = useCallback(async () => {
+    const el = mapContainerRef.current
+    if (!el) return
+    setExporting(true)
+    try {
+      const dataUrl = await toPng(el, {
+        cacheBust: true,
+        pixelRatio: 2,
+        filter: (node) => {
+          if (node.classList?.contains('leaflet-control-attribution')) return false
+          return true
+        },
+      })
+      const link = document.createElement('a')
+      link.download = `map-region-${Date.now()}.png`
+      link.href = dataUrl
+      link.click()
+    } catch (err) {
+      console.error('Export failed:', err)
+    } finally {
+      setExporting(false)
+    }
+  }, [])
+
   const selectedOverlay = overlays.find(o => o.id === selectedId)
   const selectedLabels = labels.filter(l => l.overlayId === selectedId)
 
   return (
     <div className="w-full h-full relative">
+      <div ref={mapContainerRef} className="w-full h-full">
       <MapContainer
         center={[20, 0]}
         zoom={3}
@@ -136,6 +165,7 @@ export default function MapView() {
         <LabelLayer labels={labels} onLabelMove={handleLabelMove} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
+      </div>
 
       <SearchPanel
         countries={countries}
@@ -143,11 +173,25 @@ export default function MapView() {
         onSelect={handleSelect}
       />
 
-      {loading && (
-        <div className="absolute bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-500 shadow">
-          Loading map data...
-        </div>
-      )}
+      <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-2">
+        {loading && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-500 shadow">
+            Loading map data...
+          </div>
+        )}
+        {overlays.length > 0 && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-600 shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {exporting ? 'Exporting...' : 'Export PNG'}
+          </button>
+        )}
+      </div>
 
       {selectedId && selectedOverlay && (
         <StylePanel
