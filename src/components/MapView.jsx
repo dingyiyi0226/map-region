@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
+import StylePanel from './StylePanel'
 import { loadCountries, loadAdmin1 } from '../data/geo'
 
 let nextId = 1
@@ -62,6 +63,12 @@ export default function MapView() {
     setSelectedId(id)
   }, [])
 
+  const handleStyleUpdate = useCallback((id, updates) => {
+    setOverlays(prev =>
+      prev.map(o => (o.id === id ? { ...o, ...updates } : o))
+    )
+  }, [])
+
   return (
     <div className="w-full h-full relative">
       <MapContainer
@@ -88,6 +95,13 @@ export default function MapView() {
         <div className="absolute bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-500 shadow">
           Loading map data...
         </div>
+      )}
+
+      {selectedId && (
+        <StylePanel
+          overlay={overlays.find(o => o.id === selectedId)}
+          onUpdate={handleStyleUpdate}
+        />
       )}
 
       {overlays.length > 0 && (
