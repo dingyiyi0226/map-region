@@ -10,6 +10,7 @@ import HoverLayer from './HoverLayer'
 import { loadCountries, loadAdmin1, loadAdmin2, clearSubdivisionCache, getISO3ForCountry, getCacheStats } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
+const DATA_VERSION = 1
 
 function loadSavedData() {
   try {
@@ -300,11 +301,52 @@ export default function MapView() {
   }, [selectedId])
 
   const mapRef = useRef(null)
+  const fileInputRef = useRef(null)
   const [resetHover, setResetHover] = useState(false)
   const [helpHover, setHelpHover] = useState(false)
   const [hideUI, setHideUI] = useState(false)
   const [searchHoveredItem, setSearchHoveredItem] = useState(null)
   const [hideUIHover, setHideUIHover] = useState(false)
+  const [exportHover, setExportHover] = useState(false)
+  const [importHover, setImportHover] = useState(false)
+  const [importError, setImportError] = useState(null)
+
+  const handleExport = useCallback(() => {
+    const data = JSON.stringify({ version: DATA_VERSION, overlays, labels }, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `map-region-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [overlays, labels])
+
+  const handleImport = useCallback((e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportError(null)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result)
+        if (!data.overlays || !data.labels) return
+        if (data.version !== DATA_VERSION) {
+          setImportError(`Incompatible file version (got ${data.version ?? 'none'}, expected ${DATA_VERSION})`)
+          return
+        }
+        setOverlays(data.overlays)
+        setLabels(data.labels)
+        setSelectedId(null)
+        setSelectedCustomLabelId(null)
+        // Update ID counters to avoid collisions
+        nextId = Math.max(0, ...data.overlays.map(o => o.id)) + 1
+        nextLabelId = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
+      } catch { /* ignore invalid files */ }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }, [])
 
   useEffect(() => {
     if (!hideUI) return
@@ -410,6 +452,57 @@ export default function MapView() {
             </div>
           )}
         </div>
+        <div
+          className="relative"
+          onMouseEnter={() => setExportHover(true)}
+          onMouseLeave={() => setExportHover(false)}
+        >
+          <button
+            onClick={handleExport}
+            className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+            </svg>
+          </button>
+          {exportHover && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                Export data
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
+        <div
+          className="relative"
+          onMouseEnter={() => setImportHover(true)}
+          onMouseLeave={() => setImportHover(false)}
+        >
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
+          {importHover && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                Import data
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
         {overlays.length > 0 && (<>
           <div
             className="relative"
@@ -483,6 +576,16 @@ export default function MapView() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+      {importError && (
+        <div className="absolute bottom-16 left-4 z-[1100] bg-red-600 text-white text-xs rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
+          <span>{importError}</span>
+          <button onClick={() => setImportError(null)} className="text-white/70 hover:text-white">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
       </>)}
