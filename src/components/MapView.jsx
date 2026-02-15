@@ -130,6 +130,18 @@ export default function MapView() {
     const layer = L.geoJSON(item.feature)
     setFitBounds(layer.getBounds())
 
+    // Auto-add label with the smallest-level name
+    const position = getCentroid(item.feature)
+    const label = {
+      id: `label-${nextLabelId++}`,
+      overlayId: id,
+      text: item.name,
+      position,
+      fontSize: 14,
+      color: '#1f2937',
+    }
+    setLabels(prev => [...prev, label])
+
     // Trigger A: load admin2 when a country is selected
     if (item.kind === 'country') {
       const iso3 = findISO3ForCountry(item.name)
