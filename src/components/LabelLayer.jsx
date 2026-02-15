@@ -44,8 +44,9 @@ export default function LabelLayer({ labels, onLabelMove }) {
             text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
             cursor: grab;
             user-select: none;
+            transform: translate(-50%, -50%);
           ">${label.text}</div>`,
-          iconSize: null,
+          iconSize: [0, 0],
           iconAnchor: [0, 0],
         })
 
