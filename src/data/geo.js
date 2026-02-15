@@ -97,6 +97,11 @@ export function getISO3ByName(countryName) {
   return NAME_TO_ISO3[countryName.toLowerCase()] || null
 }
 
+export function clearAdmin2Cache() {
+  admin2Cache.clear()
+  admin2Loading.clear()
+}
+
 export async function loadAdmin2(iso3) {
   if (admin2Cache.has(iso3)) return admin2Cache.get(iso3)
   if (admin2Loading.has(iso3)) return admin2Loading.get(iso3)

@@ -6,7 +6,7 @@ import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
-import { loadCountries, loadAdmin1, loadAdmin2, getISO3, getISO3ByName } from '../data/geo'
+import { loadCountries, loadAdmin1, loadAdmin2, clearAdmin2Cache, getISO3, getISO3ByName } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
 
@@ -185,6 +185,9 @@ export default function MapView() {
   const handleResetAll = useCallback(() => {
     setOverlays([])
     setLabels([])
+    setAdmin2([])
+    admin2LoadedRef.current.clear()
+    clearAdmin2Cache()
     setSelectedId(null)
     localStorage.removeItem(STORAGE_KEY)
   }, [])
