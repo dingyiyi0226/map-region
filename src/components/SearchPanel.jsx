@@ -42,10 +42,14 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
     const items = hits.map(h => h.item)
     setResults(items)
 
-    // Trigger B: if results contain a country, load its admin2
+    // Trigger B: if results contain a country or subdivision, load admin2
     const countryHit = items.find(item => item.kind === 'country')
     if (countryHit && onCountryHit) {
       onCountryHit(countryHit.name)
+    }
+    const subdivisionHit = items.find(item => item.kind === 'subdivision')
+    if (subdivisionHit && onCountryHit) {
+      onCountryHit(subdivisionHit.country)
     }
   }, [query, fuse, onCountryHit])
 
