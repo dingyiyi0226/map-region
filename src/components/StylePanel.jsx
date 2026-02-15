@@ -16,7 +16,7 @@ function Field({ label, children }) {
   )
 }
 
-export default function StylePanel({ overlay, labels, onUpdate, onAddLabel, onLabelUpdate, onRemoveLabel }) {
+export default function StylePanel({ overlay, labels, onUpdate, onAddLabel, onLabelUpdate, onRemoveLabel, onClearLabels }) {
   const update = useCallback(
     (key, value) => onUpdate(overlay.id, { [key]: value }),
     [overlay.id, onUpdate]
@@ -117,12 +117,22 @@ export default function StylePanel({ overlay, labels, onUpdate, onAddLabel, onLa
             <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
               Labels
             </span>
-            <button
-              onClick={onAddLabel}
-              className="text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
-            >
-              + Add
-            </button>
+            <div className="flex items-center gap-2">
+              {labels.length > 0 && (
+                <button
+                  onClick={onClearLabels}
+                  className="text-[10px] text-red-400 hover:text-red-600 transition-colors"
+                >
+                  Clear all
+                </button>
+              )}
+              <button
+                onClick={onAddLabel}
+                className="text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
+              >
+                + Add
+              </button>
+            </div>
           </div>
 
           {labels.map(label => (

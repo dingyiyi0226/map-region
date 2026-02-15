@@ -137,6 +137,17 @@ export default function MapView() {
     setLabels(prev => prev.filter(l => l.id !== labelId))
   }, [])
 
+  const handleClearLabels = useCallback((overlayId) => {
+    setLabels(prev => prev.filter(l => l.overlayId !== overlayId))
+  }, [])
+
+  const handleResetAll = useCallback(() => {
+    setOverlays([])
+    setLabels([])
+    setSelectedId(null)
+    localStorage.removeItem(STORAGE_KEY)
+  }, [])
+
   const handleRemoveOverlay = useCallback((id) => {
     setOverlays(prev => prev.filter(x => x.id !== id))
     setLabels(prev => prev.filter(l => l.overlayId !== id))
@@ -204,7 +215,7 @@ export default function MapView() {
             Loading map data...
           </div>
         )}
-        {overlays.length > 0 && (
+        {overlays.length > 0 && (<>
           <button
             onClick={handleExport}
             disabled={exporting}
@@ -215,7 +226,16 @@ export default function MapView() {
             </svg>
             {exporting ? 'Exporting...' : 'Export PNG'}
           </button>
-        )}
+          <button
+            onClick={handleResetAll}
+            className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-red-500 shadow-lg border border-gray-200/60 hover:bg-red-50 transition-colors flex items-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Reset
+          </button>
+        </>)}
       </div>
 
       {selectedId && selectedOverlay && (
@@ -226,6 +246,7 @@ export default function MapView() {
           onAddLabel={() => handleAddLabel(selectedId)}
           onLabelUpdate={handleLabelUpdate}
           onRemoveLabel={handleRemoveLabel}
+          onClearLabels={() => handleClearLabels(selectedId)}
         />
       )}
 
