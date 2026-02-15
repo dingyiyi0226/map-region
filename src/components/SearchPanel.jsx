@@ -31,6 +31,7 @@ function displayName(item) {
 
 export default function SearchPanel({ countries, admin1, admin2 = [], admin2Loading, onSelect, onCountryHit, onAddCustomLabel, onSearchHover }) {
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -38,6 +39,11 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
   const panelRef = useRef(null)
   const listRef = useRef(null)
   const navQueryRef = useRef(false) // true when query was set by arrow key nav
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 150)
+    return () => clearTimeout(timer)
+  }, [query])
 
   const allItems = useMemo(() => {
     return [
@@ -55,12 +61,12 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       navQueryRef.current = false
       return
     }
-    if (query.trim().length === 0) {
+    if (debouncedQuery.trim().length === 0) {
       setResults([])
       return
     }
     const KIND_PRIORITY = { country: 0, subdivision: 1, admin2: 2 }
-    const q = query.trim().toLowerCase()
+    const q = debouncedQuery.trim().toLowerCase()
     const sortByKindThenName = (a, b) => {
       const pa = KIND_PRIORITY[a.kind] ?? 3
       const pb = KIND_PRIORITY[b.kind] ?? 3
@@ -92,7 +98,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       }
       for (const c of countriesToLoad) onCountryHit(c)
     }
-  }, [query, allItems, onCountryHit])
+  }, [debouncedQuery, allItems, onCountryHit])
 
   useEffect(() => {
     function handleClick(e) {
