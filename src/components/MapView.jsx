@@ -314,6 +314,10 @@ export default function MapView() {
         center={[20, 0]}
         zoom={3}
         zoomControl={false}
+        worldCopyJump={true}
+        maxBounds={[[-85, -200], [85, 200]]}
+        maxBoundsViscosity={0.7}
+        minZoom={2}
         className="w-full h-full"
       >
         <TileLayer
