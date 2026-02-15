@@ -37,6 +37,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
   const inputRef = useRef(null)
   const panelRef = useRef(null)
   const listRef = useRef(null)
+  const navQueryRef = useRef(false) // true when query was set by arrow key nav
 
   const allItems = useMemo(() => {
     return [
@@ -47,6 +48,10 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
   }, [countries, admin1, admin2])
 
   useEffect(() => {
+    if (navQueryRef.current) {
+      navQueryRef.current = false
+      return
+    }
     if (query.trim().length === 0) {
       setResults([])
       return
@@ -105,11 +110,10 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  // Autocomplete hint from active or first result
+  // Autocomplete hint from first result (only when no active selection)
   const hint = useMemo(() => {
-    if (!query.trim() || results.length === 0) return ''
-    const target = activeIndex >= 0 ? results[activeIndex] : results[0]
-    const name = displayName(target)
+    if (!query.trim() || results.length === 0 || activeIndex >= 0) return ''
+    const name = displayName(results[0])
     if (name.toLowerCase().startsWith(query.toLowerCase())) {
       return query + name.slice(query.length)
     }
@@ -133,6 +137,8 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       e.preventDefault()
       const next = activeIndex < results.length - 1 ? activeIndex + 1 : 0
       setActiveIndex(next)
+      navQueryRef.current = true
+      setQuery(displayName(results[next]))
       onSearchHover?.(results[next])
       scrollToActive(next)
       return
@@ -141,6 +147,8 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       e.preventDefault()
       const next = activeIndex > 0 ? activeIndex - 1 : results.length - 1
       setActiveIndex(next)
+      navQueryRef.current = true
+      setQuery(displayName(results[next]))
       onSearchHover?.(results[next])
       scrollToActive(next)
       return
