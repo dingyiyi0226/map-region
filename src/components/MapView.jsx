@@ -7,6 +7,7 @@ import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
 import CustomLabelPanel from './CustomLabelPanel'
+import HoverLayer from './HoverLayer'
 import { loadCountries, loadAdmin1, loadAdmin2, clearAdmin2Cache, getISO3, getISO3ByName, getCacheStats } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
@@ -318,6 +319,7 @@ export default function MapView() {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
+        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
         <LabelLayer labels={labels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
