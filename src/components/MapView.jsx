@@ -55,6 +55,24 @@ function FitBounds({ bounds }) {
 function getCentroid(feature) {
   const layer = L.geoJSON(feature)
   const bounds = layer.getBounds()
+  const sw = bounds.getSouthWest()
+  const ne = bounds.getNorthEast()
+  const lngSpan = ne.lng - sw.lng
+
+  // If the bounding box spans more than 180° of longitude, the feature
+  // likely crosses the antimeridian (e.g. Russia). Shift coordinates
+  // into 0–360 range to compute a meaningful center, then convert back.
+  if (lngSpan > 180) {
+    const shiftedLayer = L.geoJSON(feature, {
+      coordsToLatLng: ([lng, lat]) =>
+        L.latLng(lat, lng < 0 ? lng + 360 : lng),
+    })
+    const shiftedCenter = shiftedLayer.getBounds().getCenter()
+    let lng = shiftedCenter.lng
+    if (lng > 180) lng -= 360
+    return [shiftedCenter.lat, lng]
+  }
+
   const center = bounds.getCenter()
   return [center.lat, center.lng]
 }
