@@ -1,7 +1,19 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Fuse from 'fuse.js'
 
-export default function SearchPanel({ countries, admin1, onSelect }) {
+const KIND_LABELS = {
+  country: 'CTY',
+  subdivision: 'REG',
+  admin2: 'DST',
+}
+
+function displayName(item) {
+  if (item.kind === 'admin2') return `${item.name}, ${item.admin1Name}, ${item.country}`
+  if (item.kind === 'subdivision') return `${item.name}, ${item.country}`
+  return item.name
+}
+
+export default function SearchPanel({ countries, admin1, admin2 = [], admin2Loading, onSelect, onCountryHit }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
@@ -11,14 +23,15 @@ export default function SearchPanel({ countries, admin1, onSelect }) {
   const fuse = useMemo(() => {
     const items = [
       ...countries.map(c => ({ ...c, kind: 'country' })),
-      ...admin1.map(a => ({ ...a, kind: 'subdivision', display: `${a.name}, ${a.country}` })),
+      ...admin1.map(a => ({ ...a, kind: 'subdivision' })),
+      ...admin2,
     ]
     return new Fuse(items, {
-      keys: ['name', 'country'],
+      keys: ['name', 'country', 'admin1Name'],
       threshold: 0.3,
       limit: 12,
     })
-  }, [countries, admin1])
+  }, [countries, admin1, admin2])
 
   useEffect(() => {
     if (query.trim().length === 0) {
@@ -26,8 +39,15 @@ export default function SearchPanel({ countries, admin1, onSelect }) {
       return
     }
     const hits = fuse.search(query, { limit: 8 })
-    setResults(hits.map(h => h.item))
-  }, [query, fuse])
+    const items = hits.map(h => h.item)
+    setResults(items)
+
+    // Trigger B: if results contain a country, load its admin2
+    const countryHit = items.find(item => item.kind === 'country')
+    if (countryHit && onCountryHit) {
+      onCountryHit(countryHit.name)
+    }
+  }, [query, fuse, onCountryHit])
 
   useEffect(() => {
     function handleClick(e) {
@@ -65,7 +85,7 @@ export default function SearchPanel({ countries, admin1, onSelect }) {
           />
         </div>
 
-        {open && results.length > 0 && (
+        {open && (results.length > 0 || admin2Loading) && (
           <div className="border-t border-gray-100 max-h-64 overflow-y-auto">
             {results.map((item, i) => (
               <button
@@ -74,13 +94,18 @@ export default function SearchPanel({ countries, admin1, onSelect }) {
                 className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm"
               >
                 <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
-                  {item.kind === 'country' ? 'CTY' : 'REG'}
+                  {KIND_LABELS[item.kind] || 'REG'}
                 </span>
                 <span className="text-gray-700 truncate">
-                  {item.kind === 'subdivision' ? `${item.name}, ${item.country}` : item.name}
+                  {displayName(item)}
                 </span>
               </button>
             ))}
+            {admin2Loading && query.trim().length > 0 && (
+              <div className="px-3 py-2 text-xs text-gray-400">
+                Loading districts...
+              </div>
+            )}
           </div>
         )}
       </div>
