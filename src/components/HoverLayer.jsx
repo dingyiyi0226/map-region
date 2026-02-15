@@ -24,6 +24,8 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
   const layerGroupRef = useRef(null)
   const hoveredLayerRef = useRef(null)
   const hoverLabelRef = useRef(null)
+  const hoverShowTimerRef = useRef(null)
+  const hoverHideTimerRef = useRef(null)
 
   // Track Shift key
   useEffect(() => {
@@ -67,14 +69,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
       const layer = L.geoJSON(item.feature, { style: TRANSPARENT_STYLE })
 
       layer.eachLayer(sub => {
-        sub.on('mouseover', (e) => {
-          if (hoveredLayerRef.current && hoveredLayerRef.current !== sub) {
-            hoveredLayerRef.current.setStyle(TRANSPARENT_STYLE)
-          }
-          sub.setStyle(HOVER_STYLE)
-          sub.bringToFront()
-          hoveredLayerRef.current = sub
-          // Show region name label following cursor
+        const showLabel = (latlng) => {
           if (hoverLabelRef.current) {
             map.removeLayer(hoverLabelRef.current)
           }
@@ -84,10 +79,44 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
             iconSize: [0, 0],
             iconAnchor: [0, 0],
           })
-          hoverLabelRef.current = L.marker(e.latlng, {
+          hoverLabelRef.current = L.marker(latlng, {
             icon,
             interactive: false,
           }).addTo(map)
+          // Auto-hide after a while
+          clearTimeout(hoverHideTimerRef.current)
+          hoverHideTimerRef.current = setTimeout(() => {
+            if (hoverLabelRef.current) {
+              map.removeLayer(hoverLabelRef.current)
+              hoverLabelRef.current = null
+            }
+          }, 1200)
+        }
+
+        const clearTimers = () => {
+          clearTimeout(hoverShowTimerRef.current)
+          clearTimeout(hoverHideTimerRef.current)
+        }
+
+        const hideLabel = () => {
+          clearTimers()
+          if (hoverLabelRef.current) {
+            map.removeLayer(hoverLabelRef.current)
+            hoverLabelRef.current = null
+          }
+        }
+
+        sub.on('mouseover', (e) => {
+          if (hoveredLayerRef.current && hoveredLayerRef.current !== sub) {
+            hoveredLayerRef.current.setStyle(TRANSPARENT_STYLE)
+          }
+          sub.setStyle(HOVER_STYLE)
+          sub.bringToFront()
+          hoveredLayerRef.current = sub
+          hideLabel()
+          hoverShowTimerRef.current = setTimeout(() => {
+            showLabel(e.latlng)
+          }, 200)
           // Preload admin1 subdivisions when hovering a country
           if (!shiftPressed && onCountryHover) {
             onCountryHover(item.name)
@@ -95,9 +124,15 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
         })
 
         sub.on('mousemove', (e) => {
+          // Hide label while moving, reschedule to show after pause
           if (hoverLabelRef.current) {
-            hoverLabelRef.current.setLatLng(e.latlng)
+            map.removeLayer(hoverLabelRef.current)
+            hoverLabelRef.current = null
           }
+          clearTimers()
+          hoverShowTimerRef.current = setTimeout(() => {
+            showLabel(e.latlng)
+          }, 200)
         })
 
         sub.on('mouseout', () => {
@@ -105,10 +140,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
           if (hoveredLayerRef.current === sub) {
             hoveredLayerRef.current = null
           }
-          if (hoverLabelRef.current) {
-            map.removeLayer(hoverLabelRef.current)
-            hoverLabelRef.current = null
-          }
+          hideLabel()
         })
 
         sub.on('click', (e) => {
@@ -132,6 +164,8 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect, onCo
     layerGroupRef.current = group
 
     return () => {
+      clearTimeout(hoverShowTimerRef.current)
+      clearTimeout(hoverHideTimerRef.current)
       if (hoverLabelRef.current) {
         map.removeLayer(hoverLabelRef.current)
         hoverLabelRef.current = null
