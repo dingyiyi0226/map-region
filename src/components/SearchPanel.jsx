@@ -1,5 +1,22 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 
+// Simple fuzzy match: checks if all query chars appear in order in the target.
+// Returns a score (higher = better match), or 0 if no match.
+function fuzzyScore(query, target) {
+  let qi = 0
+  let score = 0
+  let lastMatchIndex = -1
+  for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+    if (target[ti] === query[qi]) {
+      qi++
+      // Bonus for consecutive matches
+      score += (lastMatchIndex === ti - 1) ? 2 : 1
+      lastMatchIndex = ti
+    }
+  }
+  return qi === query.length ? score : 0
+}
+
 const KIND_LABELS = {
   country: 'CTY',
   subdivision: 'REG',
@@ -38,15 +55,27 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
     let items
 
     const q = query.trim().toLowerCase()
+    const sortByKindThenName = (a, b) => {
+      const pa = KIND_PRIORITY[a.kind] ?? 3
+      const pb = KIND_PRIORITY[b.kind] ?? 3
+      if (pa !== pb) return pa - pb
+      return a.display.localeCompare(b.display)
+    }
+
+    // Try prefix match first
     items = allItems
       .filter(item => item.display.toLowerCase().startsWith(q))
-      .sort((a, b) => {
-        const pa = KIND_PRIORITY[a.kind] ?? 3
-        const pb = KIND_PRIORITY[b.kind] ?? 3
-        if (pa !== pb) return pa - pb
-        return a.display.localeCompare(b.display)
-      })
+      .sort(sortByKindThenName)
       .slice(0, 12)
+
+    // Fall back to fuzzy match if no prefix results
+    if (items.length === 0) {
+      items = allItems
+        .map(item => ({ ...item, score: fuzzyScore(q, item.display.toLowerCase()) }))
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score || sortByKindThenName(a, b))
+        .slice(0, 12)
+    }
 
     setResults(items)
     setActiveIndex(-1)
