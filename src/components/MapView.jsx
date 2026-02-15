@@ -383,7 +383,7 @@ export default function MapView() {
                 <div className="space-y-1 text-gray-300">
                   <div><span className="text-white">Hover</span> a country to highlight it</div>
                   <div><span className="text-white">Click</span> to select and add it</div>
-                  <div><span className="text-white">Hold CMD + hover</span> for subdivisions</div>
+                  <div><span className="text-white">Hold Shift + hover</span> for subdivisions</div>
                   <div><span className="text-white">Search</span> to find any region by name</div>
                   <div><span className="text-white">Click a layer</span> to style it</div>
                   <div><span className="text-white">Drag labels</span> to reposition them</div>

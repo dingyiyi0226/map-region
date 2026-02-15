@@ -20,19 +20,19 @@ const TRANSPARENT_STYLE = {
 
 export default function HoverLayer({ countries, admin1, overlays, onSelect }) {
   const map = useMap()
-  const [cmdPressed, setCmdPressed] = useState(false)
+  const [shiftPressed, setShiftPressed] = useState(false)
   const layerGroupRef = useRef(null)
   const hoveredLayerRef = useRef(null)
 
-  // Track CMD/Meta key
+  // Track Shift key
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === 'Meta' || e.metaKey) setCmdPressed(true)
+      if (e.key === 'Shift' || e.shiftKey) setShiftPressed(true)
     }
     const onKeyUp = (e) => {
-      if (e.key === 'Meta') setCmdPressed(false)
+      if (e.key === 'Shift') setShiftPressed(false)
     }
-    const onBlur = () => setCmdPressed(false)
+    const onBlur = () => setShiftPressed(false)
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
@@ -52,7 +52,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect }) {
     }
     hoveredLayerRef.current = null
 
-    const items = cmdPressed ? admin1 : countries
+    const items = shiftPressed ? admin1 : countries
     if (!items || items.length === 0) return
 
     // Get names of already-selected overlays to skip
@@ -84,7 +84,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect }) {
 
         sub.on('click', (e) => {
           L.DomEvent.stopPropagation(e)
-          const kind = cmdPressed
+          const kind = shiftPressed
             ? 'subdivision'
             : 'country'
           onSelect({
@@ -108,7 +108,7 @@ export default function HoverLayer({ countries, admin1, overlays, onSelect }) {
         layerGroupRef.current = null
       }
     }
-  }, [map, cmdPressed, countries, admin1, overlays, onSelect])
+  }, [map, shiftPressed, countries, admin1, overlays, onSelect])
 
   return null
 }
