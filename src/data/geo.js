@@ -102,6 +102,34 @@ export function clearAdmin2Cache() {
   admin2Loading.clear()
 }
 
+export function getCacheStats() {
+  const fmt = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  let lsBytes = 0
+  try {
+    for (const key of Object.keys(localStorage)) {
+      lsBytes += (key.length + localStorage.getItem(key).length) * 2
+    }
+  } catch { /* ignore */ }
+
+  let admin2Features = 0
+  admin2Cache.forEach(features => { admin2Features += features.length })
+  const admin2Countries = admin2Cache.size
+
+  return {
+    localStorage: fmt(lsBytes),
+    overlays: JSON.parse(localStorage.getItem('map-region-data') || '{}').overlays?.length || 0,
+    labels: JSON.parse(localStorage.getItem('map-region-data') || '{}').labels?.length || 0,
+    admin2Countries,
+    admin2Features,
+    fmt,
+  }
+}
+
 export async function loadAdmin2(iso3) {
   if (admin2Cache.has(iso3)) return admin2Cache.get(iso3)
   if (admin2Loading.has(iso3)) return admin2Loading.get(iso3)

@@ -6,7 +6,7 @@ import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
-import { loadCountries, loadAdmin1, loadAdmin2, clearAdmin2Cache, getISO3, getISO3ByName } from '../data/geo'
+import { loadCountries, loadAdmin1, loadAdmin2, clearAdmin2Cache, getISO3, getISO3ByName, getCacheStats } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
 
@@ -49,6 +49,30 @@ function getCentroid(feature) {
   const bounds = layer.getBounds()
   const center = bounds.getCenter()
   return [center.lat, center.lng]
+}
+
+function CacheTooltip({ visible }) {
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    if (visible) setStats(getCacheStats())
+  }, [visible])
+
+  if (!visible || !stats) return null
+
+  return (
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
+      <div className="bg-gray-800 text-white text-[10px] rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+        <div className="font-medium mb-1">Storage usage</div>
+        <div>localStorage: {stats.localStorage}</div>
+        <div>Overlays: {stats.overlays} | Labels: {stats.labels}</div>
+        {stats.admin2Countries > 0 && (
+          <div>Admin2 cache: {stats.admin2Features} districts ({stats.admin2Countries} countries)</div>
+        )}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+      </div>
+    </div>
+  )
 }
 
 export default function MapView() {
@@ -212,6 +236,7 @@ export default function MapView() {
 
   const mapContainerRef = useRef(null)
   const [exporting, setExporting] = useState(false)
+  const [resetHover, setResetHover] = useState(false)
 
   const handleExport = useCallback(async () => {
     const el = mapContainerRef.current
@@ -285,15 +310,22 @@ export default function MapView() {
             </svg>
             {exporting ? 'Exporting...' : 'Export PNG'}
           </button>
-          <button
-            onClick={handleResetAll}
-            className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-red-500 shadow-lg border border-gray-200/60 hover:bg-red-50 transition-colors flex items-center gap-1.5"
+          <div
+            className="relative"
+            onMouseEnter={() => setResetHover(true)}
+            onMouseLeave={() => setResetHover(false)}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Reset
-          </button>
+            <button
+              onClick={handleResetAll}
+              className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-red-500 shadow-lg border border-gray-200/60 hover:bg-red-50 transition-colors flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Reset
+            </button>
+            <CacheTooltip visible={resetHover} />
+          </div>
         </>)}
       </div>
 
