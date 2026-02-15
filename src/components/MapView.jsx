@@ -6,7 +6,7 @@ import SearchPanel from './SearchPanel'
 import RegionLayer from './RegionLayer'
 import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
-import { loadCountries, loadAdmin1, loadAdmin2, getISO3 } from '../data/geo'
+import { loadCountries, loadAdmin1, loadAdmin2, getISO3, getISO3ByName } from '../data/geo'
 
 const STORAGE_KEY = 'map-region-data'
 
@@ -81,7 +81,8 @@ export default function MapView() {
     const match = admin1.find(
       a => a.country && a.country.toLowerCase() === countryName.toLowerCase()
     )
-    return match ? getISO3(match.iso_a2) : null
+    const iso3 = match ? getISO3(match.iso_a2) : null
+    return iso3 || getISO3ByName(countryName)
   }, [admin1])
 
   const triggerAdmin2Load = useCallback((iso3) => {

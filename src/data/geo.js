@@ -78,8 +78,23 @@ export function getSubdivisions(admin1Data, countryName) {
   )
 }
 
+// Fallback for countries where Natural Earth uses iso_a2: -99
+const NAME_TO_ISO3 = {
+  'taiwan': 'TWN',
+  'kosovo': 'XKO',
+  'western sahara': 'ESH',
+  'somaliland': 'SOL',
+  'northern cyprus': 'CYP',
+  'south ossetia': 'GEO',
+  'abkhazia': 'GEO',
+}
+
 export function getISO3(iso2) {
   return ISO2_TO_ISO3[iso2] || null
+}
+
+export function getISO3ByName(countryName) {
+  return NAME_TO_ISO3[countryName.toLowerCase()] || null
 }
 
 export async function loadAdmin2(iso3) {
