@@ -5,6 +5,8 @@ import L from 'leaflet'
 export default function LabelLayer({ labels, onLabelMove }) {
   const map = useMap()
   const markersRef = useRef({})
+  const onLabelMoveRef = useRef(onLabelMove)
+  onLabelMoveRef.current = onLabelMove
 
   useEffect(() => {
     const currentIds = new Set(labels.map(l => l.id))
@@ -25,9 +27,10 @@ export default function LabelLayer({ labels, onLabelMove }) {
         existing.setLatLng(label.position)
         const el = existing.getElement()
         if (el) {
-          el.querySelector('.label-text').textContent = label.text
-          el.style.fontSize = `${label.fontSize}px`
-          el.style.color = label.color
+          const textEl = el.querySelector('.label-text')
+          textEl.textContent = label.text
+          textEl.style.fontSize = `${label.fontSize}px`
+          textEl.style.color = label.color
         }
       } else {
         const icon = L.divIcon({
@@ -53,19 +56,22 @@ export default function LabelLayer({ labels, onLabelMove }) {
 
         marker.on('dragend', () => {
           const pos = marker.getLatLng()
-          onLabelMove(label.id, [pos.lat, pos.lng])
+          onLabelMoveRef.current(label.id, [pos.lat, pos.lng])
         })
 
         marker.addTo(map)
         markersRef.current[label.id] = marker
       }
     })
+  }, [map, labels])
 
+  // Cleanup only on unmount
+  useEffect(() => {
     return () => {
       Object.values(markersRef.current).forEach(m => map.removeLayer(m))
       markersRef.current = {}
     }
-  }, [map, labels, onLabelMove])
+  }, [map])
 
   return null
 }
