@@ -9,6 +9,14 @@ import CustomLabelPanel from './CustomLabelPanel'
 import HoverLayer from './HoverLayer'
 import { loadCountries, loadAdmin1, loadAdmin2, clearSubdivisionCache, getISO3ForCountry, getCacheStats } from '../data/geo'
 
+const BASE_MAPS = [
+  { id: 'carto-light', name: 'Light', url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://carto.com/">CARTO</a>' },
+  { id: 'carto-dark', name: 'Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://carto.com/">CARTO</a>' },
+  { id: 'carto-voyager', name: 'Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://carto.com/">CARTO</a>' },
+  { id: 'osm', name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' },
+  { id: 'opentopomap', name: 'Terrain', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>' },
+]
+
 const STORAGE_KEY = 'map-region-data'
 const DATA_VERSION = 1
 
@@ -121,6 +129,10 @@ export default function MapView() {
   const [nativeNameHover, setNativeNameHover] = useState(false)
   const [labelsHidden, setLabelsHidden] = useState(false)
   const [labelsHiddenHover, setLabelsHiddenHover] = useState(false)
+  const [baseMap, setBaseMap] = useState(BASE_MAPS[0])
+  const [baseMapOpen, setBaseMapOpen] = useState(false)
+  const [baseMapHover, setBaseMapHover] = useState(false)
+  const baseMapRef = useRef(null)
 
   useEffect(() => {
     loadCountries()
@@ -134,6 +146,17 @@ export default function MapView() {
   useEffect(() => {
     saveData(overlays, labels)
   }, [overlays, labels])
+
+  useEffect(() => {
+    if (!baseMapOpen) return
+    const handleClick = (e) => {
+      if (baseMapRef.current && !baseMapRef.current.contains(e.target)) {
+        setBaseMapOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [baseMapOpen])
 
   const triggerAdmin1Load = useCallback((iso3) => {
     if (!iso3 || admin1LoadedRef.current.has(iso3)) return
@@ -394,8 +417,9 @@ export default function MapView() {
         className="w-full h-full"
       >
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+          key={baseMap.id}
+          attribution={baseMap.attribution}
+          url={baseMap.url}
         />
         <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} disabled={hideUI} searchHoveredItem={searchHoveredItem} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
@@ -467,6 +491,46 @@ export default function MapView() {
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 Hide UI for screenshot (press any key to show)
                 <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+        </div>
+        <div
+          className="relative"
+          ref={baseMapRef}
+          onMouseEnter={() => setBaseMapHover(true)}
+          onMouseLeave={() => setBaseMapHover(false)}
+        >
+          <button
+            onClick={() => setBaseMapOpen(v => !v)}
+            className={`bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors flex items-center justify-center ${baseMapOpen ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          </button>
+          {baseMapHover && !baseMapOpen && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                Base map style
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+              </div>
+            </div>
+          )}
+          {baseMapOpen && (
+            <div className="absolute bottom-full left-0 mb-2">
+              <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 p-1.5 flex flex-col gap-0.5 w-36">
+                {BASE_MAPS.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setBaseMap(m); setBaseMapOpen(false) }}
+                    className={`text-left px-2.5 py-1.5 rounded text-xs transition-colors ${
+                      baseMap.id === m.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {m.name}
+                  </button>
+                ))}
               </div>
             </div>
           )}
