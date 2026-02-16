@@ -37,10 +37,6 @@ function saveData(overlays, labels) {
 }
 
 const saved = loadSavedData()
-let nextId = saved ? Math.max(0, ...saved.overlays.map(o => o.id)) + 1 : 1
-let nextLabelId = saved
-  ? Math.max(0, ...saved.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
-  : 1
 
 function MapRef({ mapRef }) {
   const map = useMap()
@@ -116,6 +112,8 @@ export default function MapView() {
   const [countries, setCountries] = useState([])
   const [admin1, setAdmin1] = useState([])
   const [admin2, setAdmin2] = useState([])
+  const nextIdRef = useRef(saved ? Math.max(0, ...saved.overlays.map(o => o.id)) + 1 : 1)
+  const nextLabelIdRef = useRef(saved ? Math.max(0, ...saved.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1 : 1)
   const admin1LoadedRef = useRef(new Set())
   const [subdivisionLoadingCount, setSubdivisionLoadingCount] = useState(0)
   const admin2LoadedRef = useRef(new Set())
@@ -189,7 +187,7 @@ export default function MapView() {
   }, [triggerAdmin1Load, triggerAdmin2Load])
 
   const handleSelect = useCallback((item) => {
-    const id = nextId++
+    const id = nextIdRef.current++
     let name
     if (item.kind === 'admin2') {
       name = `${item.name}, ${item.admin1Name}, ${item.country}`
@@ -221,7 +219,7 @@ export default function MapView() {
     const position = getCentroid(item.feature)
     const nlName = item.nlName || ''
     const label = {
-      id: `label-${nextLabelId++}`,
+      id: `label-${nextLabelIdRef.current++}`,
       overlayId: id,
       text: useNativeNames && nlName ? nlName : item.name,
       nlName,
@@ -253,7 +251,7 @@ export default function MapView() {
     if (!overlay) return
     const position = getCentroid(overlay.feature)
     const label = {
-      id: `label-${nextLabelId++}`,
+      id: `label-${nextLabelIdRef.current++}`,
       overlayId,
       text: overlay.name,
       nlName: '',
@@ -308,7 +306,7 @@ export default function MapView() {
     if (!map) return
     const center = map.getCenter()
     const label = {
-      id: `label-${nextLabelId++}`,
+      id: `label-${nextLabelIdRef.current++}`,
       overlayId: null,
       text: 'Label',
       position: [center.lat, center.lng],
@@ -377,8 +375,8 @@ export default function MapView() {
         setSelectedId(null)
         setSelectedCustomLabelId(null)
         // Update ID counters to avoid collisions
-        nextId = Math.max(0, ...data.overlays.map(o => o.id)) + 1
-        nextLabelId = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
+        nextIdRef.current = Math.max(0, ...data.overlays.map(o => o.id)) + 1
+        nextLabelIdRef.current = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
       } catch { /* ignore invalid files */ }
     }
     reader.readAsText(file)
