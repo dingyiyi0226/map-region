@@ -7,7 +7,7 @@ import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
 import CustomLabelPanel from './CustomLabelPanel'
 import HoverLayer from './HoverLayer'
-import { loadCountries, loadAdmin1, loadAdmin2, clearSubdivisionCache, getISO3ForCountry, getCacheStats } from '../data/geo'
+import { loadCountries, loadAdmin1, loadAdmin2, clearSubdivisionCache, getISO3ForCountry, getCacheStats, resolveOverlays } from '../data/geo'
 
 const BASE_MAPS = [
   { id: 'carto-light', name: 'Light', url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://carto.com/">CARTO</a>' },
@@ -30,13 +30,17 @@ function loadSavedData() {
   }
 }
 
-function saveData(overlays, labels) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ overlays, labels }))
-  } catch { /* ignore quota errors */ }
+function stripFeatures(overlays) {
+  return overlays.map(({ feature, ...rest }) => rest)
 }
 
-const saved = loadSavedData()
+function saveData(overlays, labels) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ overlays: stripFeatures(overlays), labels }))
+  } catch (e) {
+    console.warn('Failed to save data:', e.message)
+  }
+}
 
 function MapRef({ mapRef }) {
   const map = useMap()
@@ -81,7 +85,7 @@ function getCentroid(feature) {
   return [center.lat, center.lng]
 }
 
-function CacheTooltip({ visible }) {
+function CacheTooltip({ visible, overlayCount, labelCount }) {
   const [stats, setStats] = useState(null)
 
   useEffect(() => {
@@ -93,9 +97,8 @@ function CacheTooltip({ visible }) {
   return (
     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
       <div className="bg-gray-800 text-white text-[10px] rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-        <div className="font-medium mb-1">Storage usage</div>
-        <div>localStorage: {stats.localStorage}</div>
-        <div>Overlays: {stats.overlays} | Labels: {stats.labels}</div>
+        <div className="font-medium mb-1">Data</div>
+        <div>Overlays: {overlayCount} | Labels: {labelCount}</div>
         {stats.admin1Countries > 0 && (
           <div>Admin1 cache: {stats.admin1Features} regions ({stats.admin1Countries} countries)</div>
         )}
@@ -112,13 +115,14 @@ export default function MapView() {
   const [countries, setCountries] = useState([])
   const [admin1, setAdmin1] = useState([])
   const [admin2, setAdmin2] = useState([])
-  const nextIdRef = useRef(saved ? Math.max(0, ...saved.overlays.map(o => o.id)) + 1 : 1)
-  const nextLabelIdRef = useRef(saved ? Math.max(0, ...saved.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1 : 1)
+  const nextIdRef = useRef(1)
+  const nextLabelIdRef = useRef(1)
   const admin1LoadedRef = useRef(new Set())
   const [subdivisionLoadingCount, setSubdivisionLoadingCount] = useState(0)
   const admin2LoadedRef = useRef(new Set())
-  const [overlays, setOverlays] = useState(saved?.overlays || [])
-  const [labels, setLabels] = useState(saved?.labels || [])
+  const [overlays, setOverlays] = useState([])
+  const [labels, setLabels] = useState([])
+  const dataLoadedRef = useRef(false)
   const [selectedId, setSelectedId] = useState(null)
   const [selectedCustomLabelId, setSelectedCustomLabelId] = useState(null)
   const [fitBounds, setFitBounds] = useState(null)
@@ -133,15 +137,28 @@ export default function MapView() {
   const baseMapRef = useRef(null)
 
   useEffect(() => {
-    loadCountries()
-      .then(c => {
-        setCountries(c)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    const saved = loadSavedData()
+    const init = async () => {
+      const countries = await loadCountries()
+      setCountries(countries)
+      if (saved?.overlays?.length) {
+        const resolved = await resolveOverlays(saved.overlays)
+        setOverlays(resolved)
+        setLabels(saved.labels || [])
+        nextIdRef.current = Math.max(0, ...resolved.map(o => o.id)) + 1
+        nextLabelIdRef.current = Math.max(0, ...(saved.labels || []).map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
+      } else if (saved?.labels?.length) {
+        setLabels(saved.labels)
+        nextLabelIdRef.current = Math.max(0, ...saved.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
+      }
+      dataLoadedRef.current = true
+      setLoading(false)
+    }
+    init().catch(() => setLoading(false))
   }, [])
 
   useEffect(() => {
+    if (!dataLoadedRef.current) return
     saveData(overlays, labels)
   }, [overlays, labels])
 
@@ -196,10 +213,15 @@ export default function MapView() {
     } else {
       name = item.name
     }
+    const countryName = item.kind === 'country' ? item.name : item.country
     const overlay = {
       id,
       name,
       kind: item.kind,
+      regionName: item.name,
+      countryName,
+      admin1Name: item.kind === 'admin2' ? item.admin1Name : undefined,
+      iso3: item.iso3 || getISO3ForCountry(countryName),
       feature: item.feature,
       fillColor: '#3b82f6',
       fillOpacity: 0.2,
@@ -347,7 +369,7 @@ export default function MapView() {
   const [importError, setImportError] = useState(null)
 
   const handleExport = useCallback(() => {
-    const data = JSON.stringify({ version: DATA_VERSION, overlays, labels }, null, 2)
+    const data = JSON.stringify({ version: DATA_VERSION, overlays: stripFeatures(overlays), labels }, null, 2)
     const blob = new Blob([data], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -355,6 +377,7 @@ export default function MapView() {
     a.download = `map-region-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
+    console.info(`[map-region] Exported ${overlays.length} overlays, ${labels.length} labels`)
   }, [overlays, labels])
 
   const handleImport = useCallback((e) => {
@@ -362,7 +385,7 @@ export default function MapView() {
     if (!file) return
     setImportError(null)
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target.result)
         if (!data.overlays || !data.labels) return
@@ -370,14 +393,19 @@ export default function MapView() {
           setImportError(`Incompatible file version (got ${data.version ?? 'none'}, expected ${DATA_VERSION})`)
           return
         }
-        setOverlays(data.overlays)
+        setLoading(true)
+        const resolved = await resolveOverlays(data.overlays)
+        setOverlays(resolved)
         setLabels(data.labels)
+        dataLoadedRef.current = true
+        saveData(resolved, data.labels)
         setSelectedId(null)
         setSelectedCustomLabelId(null)
-        // Update ID counters to avoid collisions
-        nextIdRef.current = Math.max(0, ...data.overlays.map(o => o.id)) + 1
+        nextIdRef.current = Math.max(0, ...resolved.map(o => o.id)) + 1
         nextLabelIdRef.current = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
-      } catch { /* ignore invalid files */ }
+        console.info(`[map-region] Imported ${resolved.length} overlays, ${data.labels.length} labels (${data.overlays.length - resolved.length} unresolved)`)
+        setLoading(false)
+      } catch (e) { console.warn('[map-region] Import failed:', e.message); setLoading(false) }
     }
     reader.readAsText(file)
     e.target.value = ''
@@ -643,7 +671,7 @@ export default function MapView() {
               </svg>
               Reset
             </button>
-            <CacheTooltip visible={resetHover} />
+            <CacheTooltip visible={resetHover} overlayCount={overlays.length} labelCount={labels.length} />
           </div>
         </>)}
       </div>

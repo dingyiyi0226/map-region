@@ -178,19 +178,6 @@ export function clearSubdivisionCache() {
 }
 
 export function getCacheStats() {
-  const fmt = (bytes) => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
-
-  let lsBytes = 0
-  try {
-    for (const key of Object.keys(localStorage)) {
-      lsBytes += (key.length + localStorage.getItem(key).length) * 2
-    }
-  } catch { /* ignore */ }
-
   let admin1Features = 0
   admin1Cache.forEach(features => { admin1Features += features.length })
   const admin1Countries = admin1Cache.size
@@ -200,14 +187,10 @@ export function getCacheStats() {
   const admin2Countries = admin2Cache.size
 
   return {
-    localStorage: fmt(lsBytes),
-    overlays: JSON.parse(localStorage.getItem('map-region-data') || '{}').overlays?.length || 0,
-    labels: JSON.parse(localStorage.getItem('map-region-data') || '{}').labels?.length || 0,
     admin1Countries,
     admin1Features,
     admin2Countries,
     admin2Features,
-    fmt,
   }
 }
 
@@ -248,4 +231,62 @@ export async function loadAdmin2(iso3) {
 
   admin2Loading.set(iso3, promise)
   return promise
+}
+
+export async function resolveOverlays(overlays) {
+  await loadCountries()
+
+  // Normalize overlays: derive lookup keys from display name if missing (old format)
+  const normalized = overlays.map(o => {
+    if (o.feature) return o
+    if (o.regionName && o.iso3) return o
+    const parts = o.name.split(', ')
+    let { regionName, countryName, admin1Name, iso3 } = o
+    if (!regionName) {
+      if (o.kind === 'country') {
+        regionName = o.name
+        countryName = o.name
+      } else if (o.kind === 'subdivision') {
+        regionName = parts[0]
+        countryName = parts.slice(1).join(', ')
+      } else if (o.kind === 'admin2') {
+        regionName = parts[0]
+        admin1Name = parts[1]
+        countryName = parts.slice(2).join(', ')
+      }
+    }
+    if (!iso3 && countryName) iso3 = getISO3ForCountry(countryName)
+    return { ...o, regionName, countryName, admin1Name, iso3 }
+  })
+
+  const needAdmin1 = new Set()
+  const needAdmin2 = new Set()
+  for (const o of normalized) {
+    if (o.feature) continue
+    if (o.kind === 'subdivision' && o.iso3) needAdmin1.add(o.iso3)
+    if (o.kind === 'admin2' && o.iso3) {
+      needAdmin1.add(o.iso3)
+      needAdmin2.add(o.iso3)
+    }
+  }
+
+  await Promise.all([
+    ...Array.from(needAdmin1).map(iso3 => loadAdmin1(iso3)),
+    ...Array.from(needAdmin2).map(iso3 => loadAdmin2(iso3)),
+  ])
+
+  return normalized.map(o => {
+    if (o.feature) return o
+    let feature = null
+    if (o.kind === 'country') {
+      feature = countriesCache?.find(c => c.name === o.regionName)?.feature
+    } else if (o.kind === 'subdivision' && o.iso3) {
+      const features = admin1Cache.get(o.iso3)
+      feature = features?.find(f => f.name === o.regionName && f.country === o.countryName)?.feature
+    } else if (o.kind === 'admin2' && o.iso3) {
+      const features = admin2Cache.get(o.iso3)
+      feature = features?.find(f => f.name === o.regionName && f.admin1Name === o.admin1Name && f.country === o.countryName)?.feature
+    }
+    return { ...o, feature }
+  }).filter(o => o.feature)
 }
