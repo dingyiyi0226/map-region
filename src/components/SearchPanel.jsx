@@ -31,7 +31,6 @@ function displayName(item) {
 
 export default function SearchPanel({ countries, admin1, admin2 = [], admin2Loading, onSelect, onCountryHit, onAddCustomLabel, onSearchHover }) {
   const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -39,11 +38,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
   const panelRef = useRef(null)
   const listRef = useRef(null)
   const navQueryRef = useRef(false) // true when query was set by arrow key nav
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), 150)
-    return () => clearTimeout(timer)
-  }, [query])
+  const [expandedItem, setExpandedItem] = useState(null)
 
   const allItems = useMemo(() => {
     return [
@@ -61,12 +56,12 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       navQueryRef.current = false
       return
     }
-    if (debouncedQuery.trim().length === 0) {
+    if (query.trim().length === 0) {
       setResults([])
       return
     }
     const KIND_PRIORITY = { country: 0, subdivision: 1, admin2: 2 }
-    const q = debouncedQuery.trim().toLowerCase()
+    const q = query.trim().toLowerCase()
     const sortByKindThenName = (a, b) => {
       const pa = KIND_PRIORITY[a.kind] ?? 3
       const pb = KIND_PRIORITY[b.kind] ?? 3
@@ -98,7 +93,52 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       }
       for (const c of countriesToLoad) onCountryHit(c)
     }
-  }, [debouncedQuery, allItems, onCountryHit])
+  }, [query, allItems, onCountryHit])
+
+  const perfectMatchItem = useMemo(() => {
+    if (results.length === 0) return null
+    const first = results[0]
+    if (first.kind !== 'country' && first.kind !== 'subdivision') return null
+    // Keep toggle visible while navigating (results[0] didn't change, only query did)
+    if (expandedItem && first.kind === expandedItem.kind && first.name === expandedItem.name) return first
+    if (displayName(first).toLowerCase() === query.trim().toLowerCase()) return first
+    return null
+  }, [results, query, expandedItem])
+
+  useEffect(() => {
+    if (!perfectMatchItem) {
+      setExpandedItem(null)
+    } else if (expandedItem && (perfectMatchItem.kind !== expandedItem.kind || perfectMatchItem.name !== expandedItem.name)) {
+      setExpandedItem(null)
+    }
+  }, [perfectMatchItem, expandedItem])
+
+  const displayedResults = useMemo(() => {
+    if (!expandedItem) return results
+    if (expandedItem.kind === 'country') {
+      const countryName = expandedItem.name
+      const subdivisions = allItems
+        .filter(item => item.kind === 'subdivision' && item.country === countryName)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(item => ({ ...item, _fromExpand: true }))
+      const otherResults = results.slice(1).filter(
+        item => !(item.kind === 'subdivision' && item.country === countryName)
+      )
+      return [results[0], ...subdivisions, ...otherResults]
+    }
+    if (expandedItem.kind === 'subdivision') {
+      const { country: countryName, name: subName } = expandedItem
+      const districts = allItems
+        .filter(item => item.kind === 'admin2' && item.country === countryName && item.admin1Name === subName)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(item => ({ ...item, _fromExpand: true }))
+      const otherResults = results.slice(1).filter(
+        item => !(item.kind === 'admin2' && item.country === countryName && item.admin1Name === subName)
+      )
+      return [results[0], ...districts, ...otherResults]
+    }
+    return results
+  }, [expandedItem, results, allItems])
 
   useEffect(() => {
     function handleClick(e) {
@@ -133,30 +173,61 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       setQuery(hint)
       return
     }
-    if (e.key === 'ArrowDown' && open && results.length > 0) {
+    if (e.key === 'ArrowRight' && open) {
+      if (perfectMatchItem && !expandedItem) {
+        e.preventDefault()
+        setExpandedItem(results[0])
+        return
+      }
+      if (expandedItem && activeIndex >= 0) {
+        const current = displayedResults[activeIndex]
+        if (current._fromExpand && current.kind === 'subdivision') {
+          e.preventDefault()
+          handleNavigateInto(current)
+          return
+        }
+      }
+    }
+    if (e.key === 'ArrowLeft' && open && expandedItem) {
       e.preventDefault()
-      const next = activeIndex < results.length - 1 ? activeIndex + 1 : 0
-      setActiveIndex(next)
+      setExpandedItem(null)
+      setActiveIndex(0)
       navQueryRef.current = true
-      setQuery(displayName(results[next]))
-      onSearchHover?.(results[next])
+      setQuery(displayName(results[0]))
+      onSearchHover?.(results[0])
+      scrollToActive(0)
+      return
+    }
+    if (e.key === 'ArrowDown' && open && displayedResults.length > 0) {
+      e.preventDefault()
+      const next = activeIndex < displayedResults.length - 1 ? activeIndex + 1 : 0
+      const nextItem = displayedResults[next]
+      setActiveIndex(next)
+      if (!nextItem._fromExpand) {
+        navQueryRef.current = true
+        setQuery(displayName(nextItem))
+      }
+      onSearchHover?.(nextItem)
       scrollToActive(next)
       return
     }
-    if (e.key === 'ArrowUp' && open && results.length > 0) {
+    if (e.key === 'ArrowUp' && open && displayedResults.length > 0) {
       e.preventDefault()
-      const next = activeIndex > 0 ? activeIndex - 1 : results.length - 1
+      const next = activeIndex > 0 ? activeIndex - 1 : displayedResults.length - 1
+      const nextItem = displayedResults[next]
       setActiveIndex(next)
-      navQueryRef.current = true
-      setQuery(displayName(results[next]))
-      onSearchHover?.(results[next])
+      if (!nextItem._fromExpand) {
+        navQueryRef.current = true
+        setQuery(displayName(nextItem))
+      }
+      onSearchHover?.(nextItem)
       scrollToActive(next)
       return
     }
     if (e.key === 'Enter') {
-      if (activeIndex >= 0 && activeIndex < results.length) {
+      if (activeIndex >= 0 && activeIndex < displayedResults.length) {
         e.preventDefault()
-        handleSelect(results[activeIndex])
+        handleSelect(displayedResults[activeIndex])
         return
       }
       if (results.length > 0 && displayName(results[0]).toLowerCase() === query.trim().toLowerCase()) {
@@ -170,6 +241,14 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       setActiveIndex(-1)
       onSearchHover?.(null)
     }
+  }
+
+  function handleNavigateInto(item) {
+    navQueryRef.current = false
+    setExpandedItem(null)
+    setActiveIndex(-1)
+    setQuery(displayName(item))
+    setOpen(true)
   }
 
   function handleSelect(item) {
@@ -222,24 +301,60 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
           </div>
         </div>
 
-        {open && (results.length > 0 || admin2Loading) && (
+        {open && (displayedResults.length > 0 || admin2Loading) && (
           <div ref={listRef} className="border-t border-gray-100 max-h-64 overflow-y-auto">
-            {results.map((item, i) => (
-              <button
-                key={`${item.kind}-${item.name}-${i}`}
-                onClick={() => handleSelect(item)}
-                onMouseEnter={() => { setActiveIndex(i); onSearchHover?.(item) }}
-                onMouseLeave={() => { setActiveIndex(-1); onSearchHover?.(null) }}
-                className={`w-full text-left px-3 py-2 transition-colors flex items-center gap-2 text-sm ${i === activeIndex ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
-              >
-                <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
-                  {KIND_LABELS[item.kind] || 'REG'}
-                </span>
-                <span className="text-gray-700 truncate">
-                  {displayName(item)}
-                </span>
-              </button>
-            ))}
+            {displayedResults.map((item, i) => {
+              const isActive = i === activeIndex
+              const rowBase = `transition-colors flex items-center gap-2 text-sm ${isActive ? 'bg-gray-100' : 'hover:bg-gray-50'}`
+              const isExpandToggle = i === 0 && perfectMatchItem
+
+              if (isExpandToggle) {
+                return (
+                  <div key={`${item.kind}-${item.name}-${i}`} className={`flex items-center ${rowBase}`}>
+                    <button
+                      onClick={() => handleSelect(item)}
+                      onMouseEnter={() => { setActiveIndex(i); onSearchHover?.(item) }}
+                      onMouseLeave={() => { setActiveIndex(-1); onSearchHover?.(null) }}
+                      className="flex-1 text-left px-3 py-2 flex items-center gap-2 text-sm min-w-0"
+                    >
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                        {KIND_LABELS[item.kind] || 'REG'}
+                      </span>
+                      <span className="text-gray-700 truncate">{displayName(item)}</span>
+                    </button>
+                    <button
+                      onClick={() => setExpandedItem(expandedItem ? null : item)}
+                      title={expandedItem ? 'Collapse subdivisions' : 'Expand subdivisions'}
+                      className="pr-3 py-2 shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg
+                        className={`w-3.5 h-3.5 transition-transform ${expandedItem ? 'rotate-90' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              }
+
+              return (
+                <button
+                  key={`${item.kind}-${item.name}-${i}`}
+                  onClick={() => item._fromExpand && item.kind === 'subdivision' ? handleNavigateInto(item) : handleSelect(item)}
+                  onMouseEnter={() => { setActiveIndex(i); onSearchHover?.(item) }}
+                  onMouseLeave={() => { setActiveIndex(-1); onSearchHover?.(null) }}
+                  className={`w-full text-left py-2 pr-3 ${item._fromExpand ? 'pl-7' : 'pl-3'} ${rowBase}`}
+                >
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                    {KIND_LABELS[item.kind] || 'REG'}
+                  </span>
+                  <span className="text-gray-700 truncate">
+                    {item._fromExpand ? item.name : displayName(item)}
+                  </span>
+                </button>
+              )
+            })}
             {admin2Loading && query.trim().length > 0 && (
               <div className="px-3 py-2 text-xs text-gray-400">
                 Loading subdivisions...
