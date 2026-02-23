@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { CircleHelp, EyeOff, Map as MapIcon, Languages, Tag, Download, Upload, Trash2, X } from 'lucide-react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import SearchPanel from './SearchPanel'
@@ -376,9 +377,7 @@ export default function MapView() {
           onMouseLeave={hoverOff('help')}
         >
           <button className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01" />
-            </svg>
+            <CircleHelp className="w-3.5 h-3.5" />
           </button>
           {hover.help && (
             <div className="absolute bottom-full left-0 mb-2">
@@ -406,9 +405,7 @@ export default function MapView() {
             onClick={() => setHideUI(true)}
             className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18" />
-            </svg>
+            <EyeOff className="w-3.5 h-3.5" />
           </button>
           {hover.hideUI && (
             <div className="absolute bottom-full left-0 mb-2">
@@ -429,9 +426,7 @@ export default function MapView() {
             onClick={() => setBaseMapOpen(v => !v)}
             className={`bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors flex items-center justify-center ${baseMapOpen ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
+            <MapIcon className="w-3.5 h-3.5" />
           </button>
           {hover.baseMap && !baseMapOpen && (
             <div className="absolute bottom-full left-0 mb-2">
@@ -468,9 +463,7 @@ export default function MapView() {
             onClick={() => setUseNativeNames(v => !v)}
             className={`bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors flex items-center justify-center ${useNativeNames ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-            </svg>
+            <Languages className="w-3.5 h-3.5" />
           </button>
           {hover.nativeName && (
             <div className="absolute bottom-full left-0 mb-2">
@@ -490,9 +483,7 @@ export default function MapView() {
             onClick={() => setLabelsHidden(v => !v)}
             className={`bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors flex items-center justify-center ${labelsHidden ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
-            </svg>
+            <Tag className="w-3.5 h-3.5" />
           </button>
           {hover.labelsHidden && (
             <div className="absolute bottom-full left-0 mb-2">
@@ -512,9 +503,7 @@ export default function MapView() {
             onClick={handleExport}
             className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-            </svg>
+            <Download className="w-3.5 h-3.5" />
           </button>
           {hover.export && (
             <div className="absolute bottom-full left-0 mb-2">
@@ -534,9 +523,7 @@ export default function MapView() {
             onClick={() => fileInputRef.current?.click()}
             className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M17 8l-5-5-5 5M12 3v12" />
-            </svg>
+            <Upload className="w-3.5 h-3.5" />
           </button>
           <input
             ref={fileInputRef}
@@ -564,9 +551,7 @@ export default function MapView() {
               onClick={handleResetAll}
               className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-red-500 shadow-lg border border-gray-200/60 hover:bg-red-50 transition-colors flex items-center gap-1.5"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
+              <Trash2 className="w-3.5 h-3.5" />
               Reset
             </button>
             <CacheTooltip visible={hover.reset} overlayCount={overlays.length} labelCount={labels.length} />
@@ -606,9 +591,7 @@ export default function MapView() {
         <div className="absolute bottom-16 left-4 z-[1100] bg-red-600 text-white text-xs rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
           <span>{importError}</span>
           <button onClick={() => setImportError(null)} className="text-white/70 hover:text-white">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}

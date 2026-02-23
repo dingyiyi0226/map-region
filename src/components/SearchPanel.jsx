@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { Search, ListChecks, ChevronRight, Type } from 'lucide-react'
 
 // --- Constants ---
 
@@ -326,9 +327,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
       </a>
       <div className="w-96 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60">
         <div className="flex items-center px-3 gap-2 h-9">
-          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <Search className="w-4 h-4 text-gray-400 shrink-0" />
           <div className="relative w-full h-5">
             {autocompleteHint && (
               <div className="absolute inset-0 flex items-center text-sm text-gray-300 pointer-events-none whitespace-nowrap overflow-hidden">
@@ -379,11 +378,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
                         title="Select all subdivisions"
                         className="py-2 shrink-0 text-gray-400 hover:text-blue-500 transition-colors"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7l2 2 3-3M11 7h10" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13l2 2 3-3M11 13h10" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19l2 2 3-3M11 19h10" />
-                        </svg>
+                        <ListChecks className="w-3.5 h-3.5" />
                       </button>
                     )}
                     <button
@@ -391,12 +386,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
                       title={expandedItem ? 'Collapse subdivisions' : 'Expand subdivisions'}
                       className="pr-3 py-2 shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      <svg
-                        className={`w-3.5 h-3.5 transition-transform ${expandedItem ? 'rotate-90' : ''}`}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expandedItem ? 'rotate-90' : ''}`} />
                     </button>
                   </div>
                 )
@@ -432,10 +422,7 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
         title="Add custom text label"
         className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 w-[38px] h-[38px] flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors shrink-0"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 11l2 2 2-2m-2-2v6" />
-        </svg>
+        <Type className="w-4 h-4" />
       </button>
     </div>
   )
