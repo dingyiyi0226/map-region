@@ -194,6 +194,17 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
   }
 
   // Navigate into an expanded subdivision to search its children (districts)
+  function handleSelectAllChildren() {
+    const children = visibleResults.filter(item => item._fromExpand)
+    for (const child of children) {
+      onSelect(child)
+    }
+    onSearchHover?.(null)
+    updateQuery('')
+    setIsOpen(false)
+    inputRef.current?.blur()
+  }
+
   function handleDrillDown(item) {
     setExpandedItem(null)
     setHighlightedIndex(-1)
@@ -362,6 +373,19 @@ export default function SearchPanel({ countries, admin1, admin2 = [], admin2Load
                       </span>
                       <span className="text-gray-700 truncate">{formatDisplayName(item)}</span>
                     </button>
+                    {expandedItem && (
+                      <button
+                        onClick={handleSelectAllChildren}
+                        title="Select all subdivisions"
+                        className="py-2 shrink-0 text-gray-400 hover:text-blue-500 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7l2 2 3-3M11 7h10" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13l2 2 3-3M11 13h10" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19l2 2 3-3M11 19h10" />
+                        </svg>
+                      </button>
+                    )}
                     <button
                       onClick={() => setExpandedItem(expandedItem ? null : item)}
                       title={expandedItem ? 'Collapse subdivisions' : 'Expand subdivisions'}
