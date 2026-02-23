@@ -7,7 +7,8 @@ import StylePanel from './StylePanel'
 import LabelLayer from './LabelLayer'
 import CustomLabelPanel from './CustomLabelPanel'
 import HoverLayer from './HoverLayer'
-import { loadCountries, loadAdmin1, loadAdmin2, clearSubdivisionCache, getISO3ForCountry, getCacheStats, resolveOverlays } from '../data/geo'
+import { loadCountries, getISO3ForCountry, getCacheStats, resolveOverlays } from '../data/geo'
+import { useGeoData } from '../hooks/useGeoData'
 
 const BASE_MAPS = [
   { id: 'carto-light', name: 'Light', url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://carto.com/">CARTO</a>' },
@@ -31,6 +32,7 @@ function loadSavedData() {
 }
 
 function stripFeatures(overlays) {
+  // eslint-disable-next-line no-unused-vars
   return overlays.map(({ feature, ...rest }) => rest)
 }
 
@@ -109,15 +111,16 @@ export default function MapView() {
   const mapRef = useRef(null)
   const fileInputRef = useRef(null)
   const baseMapRef = useRef(null)
-  const admin1LoadedRef = useRef(new Set())
-  const admin2LoadedRef = useRef(new Set())
   const isHydratedRef = useRef(false) // prevents saving to localStorage before the initial load finishes
 
   // --- Geographic data ---
-  const [countries, setCountries] = useState([])
-  const [admin1, setAdmin1] = useState([])
-  const [admin2, setAdmin2] = useState([])
-  const [pendingLoads, setPendingLoads] = useState(0) // in-flight subdivision requests
+  const {
+    countries, setCountries,
+    admin1, admin2,
+    pendingLoads,
+    prefetchSubdivisions,
+    resetGeoData,
+  } = useGeoData()
 
   // --- Session state ---
   const [overlays, setOverlays] = useState([])
@@ -161,7 +164,7 @@ export default function MapView() {
       setLoading(false)
     }
     init().catch(() => setLoading(false))
-  }, [])
+  }, [setCountries])
 
   // Auto-save on changes, but skip during initial hydration
   useEffect(() => {
@@ -189,35 +192,6 @@ export default function MapView() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [hideUI])
-
-  // --- Geographic data handlers ---
-
-  const triggerAdmin1Load = useCallback((iso3) => {
-    if (!iso3 || admin1LoadedRef.current.has(iso3)) return
-    admin1LoadedRef.current.add(iso3)
-    setPendingLoads(c => c + 1)
-    loadAdmin1(iso3).then(features => {
-      if (features.length > 0) setAdmin1(prev => [...prev, ...features])
-      setPendingLoads(c => c - 1)
-    })
-  }, [])
-
-  const triggerAdmin2Load = useCallback((iso3) => {
-    if (!iso3 || admin2LoadedRef.current.has(iso3)) return
-    admin2LoadedRef.current.add(iso3)
-    setPendingLoads(c => c + 1)
-    loadAdmin2(iso3).then(features => {
-      if (features.length > 0) setAdmin2(prev => [...prev, ...features])
-      setPendingLoads(c => c - 1)
-    })
-  }, [])
-
-  // Eagerly load admin1 + admin2 for a country (called on hover and on country select)
-  const prefetchSubdivisions = useCallback((countryName) => {
-    const iso3 = getISO3ForCountry(countryName)
-    triggerAdmin1Load(iso3)
-    triggerAdmin2Load(iso3)
-  }, [triggerAdmin1Load, triggerAdmin2Load])
 
   // --- Overlay handlers ---
 
@@ -290,15 +264,11 @@ export default function MapView() {
   const handleResetAll = useCallback(() => {
     setOverlays([])
     setLabels([])
-    setAdmin1([])
-    setAdmin2([])
-    admin1LoadedRef.current.clear()
-    admin2LoadedRef.current.clear()
-    clearSubdivisionCache()
+    resetGeoData()
     setSelectedId(null)
     setSelectedCustomLabelId(null)
     localStorage.removeItem(STORAGE_KEY)
-  }, [])
+  }, [resetGeoData])
 
   // --- Label handlers ---
 
