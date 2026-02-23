@@ -42,6 +42,7 @@ function saveData(overlays, labels) {
   }
 }
 
+// Captures the Leaflet map instance into a ref for imperative access
 function MapRef({ mapRef }) {
   const map = useMap()
   useEffect(() => { mapRef.current = map }, [map, mapRef])
@@ -50,13 +51,9 @@ function MapRef({ mapRef }) {
 
 function FitBounds({ bounds }) {
   const map = useMap()
-
   useEffect(() => {
-    if (bounds) {
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 })
-    }
+    if (bounds) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 })
   }, [map, bounds])
-
   return null
 }
 
@@ -72,8 +69,7 @@ function getCentroid(feature) {
   // into 0–360 range to compute a meaningful center, then convert back.
   if (lngSpan > 180) {
     const shiftedLayer = L.geoJSON(feature, {
-      coordsToLatLng: ([lng, lat]) =>
-        L.latLng(lat, lng < 0 ? lng + 360 : lng),
+      coordsToLatLng: ([lng, lat]) => L.latLng(lat, lng < 0 ? lng + 360 : lng),
     })
     const shiftedCenter = shiftedLayer.getBounds().getCenter()
     let lng = shiftedCenter.lng
@@ -86,13 +82,8 @@ function getCentroid(feature) {
 }
 
 function CacheTooltip({ visible, overlayCount, labelCount }) {
-  const [stats, setStats] = useState(null)
-
-  useEffect(() => {
-    if (visible) setStats(getCacheStats())
-  }, [visible])
-
-  if (!visible || !stats) return null
+  if (!visible) return null
+  const stats = getCacheStats()
 
   return (
     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
@@ -112,32 +103,50 @@ function CacheTooltip({ visible, overlayCount, labelCount }) {
 }
 
 export default function MapView() {
+  // --- Refs ---
+  const nextIdRef = useRef(1)
+  const nextLabelIdRef = useRef(1)
+  const mapRef = useRef(null)
+  const fileInputRef = useRef(null)
+  const baseMapRef = useRef(null)
+  const admin1LoadedRef = useRef(new Set())
+  const admin2LoadedRef = useRef(new Set())
+  const isHydratedRef = useRef(false) // prevents saving to localStorage before the initial load finishes
+
+  // --- Geographic data ---
   const [countries, setCountries] = useState([])
   const [admin1, setAdmin1] = useState([])
   const [admin2, setAdmin2] = useState([])
-  const nextIdRef = useRef(1)
-  const nextLabelIdRef = useRef(1)
-  const admin1LoadedRef = useRef(new Set())
-  const [subdivisionLoadingCount, setSubdivisionLoadingCount] = useState(0)
-  const admin2LoadedRef = useRef(new Set())
+  const [pendingLoads, setPendingLoads] = useState(0) // in-flight subdivision requests
+
+  // --- Session state ---
   const [overlays, setOverlays] = useState([])
   const [labels, setLabels] = useState([])
-  const dataLoadedRef = useRef(false)
   const [selectedId, setSelectedId] = useState(null)
   const [selectedCustomLabelId, setSelectedCustomLabelId] = useState(null)
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // --- UI state ---
   const [useNativeNames, setUseNativeNames] = useState(false)
   const [labelsHidden, setLabelsHidden] = useState(false)
   const [baseMap, setBaseMap] = useState(BASE_MAPS[0])
   const [baseMapOpen, setBaseMapOpen] = useState(false)
-  const baseMapRef = useRef(null)
+  const [hideUI, setHideUI] = useState(false)
+  const [searchHoveredItem, setSearchHoveredItem] = useState(null)
+  const [importError, setImportError] = useState(null)
+  const [hover, setHover] = useState({})
+  const hoverOn = key => () => setHover(h => ({ ...h, [key]: true }))
+  const hoverOff = key => () => setHover(h => ({ ...h, [key]: false }))
 
+  // --- Effects ---
+
+  // Bootstrap: load country boundaries and restore any saved session
   useEffect(() => {
     const saved = loadSavedData()
     const init = async () => {
-      const countries = await loadCountries()
-      setCountries(countries)
+      const features = await loadCountries()
+      setCountries(features)
       if (saved?.overlays?.length) {
         const resolved = await resolveOverlays(saved.overlays)
         setOverlays(resolved)
@@ -148,57 +157,69 @@ export default function MapView() {
         setLabels(saved.labels)
         nextLabelIdRef.current = Math.max(0, ...saved.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
       }
-      dataLoadedRef.current = true
+      isHydratedRef.current = true
       setLoading(false)
     }
     init().catch(() => setLoading(false))
   }, [])
 
+  // Auto-save on changes, but skip during initial hydration
   useEffect(() => {
-    if (!dataLoadedRef.current) return
+    if (!isHydratedRef.current) return
     saveData(overlays, labels)
   }, [overlays, labels])
 
+  // Close basemap dropdown on outside click
   useEffect(() => {
     if (!baseMapOpen) return
     const handleClick = (e) => {
-      if (baseMapRef.current && !baseMapRef.current.contains(e.target)) {
-        setBaseMapOpen(false)
-      }
+      if (baseMapRef.current && !baseMapRef.current.contains(e.target)) setBaseMapOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [baseMapOpen])
 
+  // Restore UI when hidden (any non-modifier key press)
+  useEffect(() => {
+    if (!hideUI) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return
+      setHideUI(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [hideUI])
+
+  // --- Geographic data handlers ---
+
   const triggerAdmin1Load = useCallback((iso3) => {
     if (!iso3 || admin1LoadedRef.current.has(iso3)) return
     admin1LoadedRef.current.add(iso3)
-    setSubdivisionLoadingCount(c => c + 1)
+    setPendingLoads(c => c + 1)
     loadAdmin1(iso3).then(features => {
-      if (features.length > 0) {
-        setAdmin1(prev => [...prev, ...features])
-      }
-      setSubdivisionLoadingCount(c => c - 1)
+      if (features.length > 0) setAdmin1(prev => [...prev, ...features])
+      setPendingLoads(c => c - 1)
     })
   }, [])
 
   const triggerAdmin2Load = useCallback((iso3) => {
     if (!iso3 || admin2LoadedRef.current.has(iso3)) return
     admin2LoadedRef.current.add(iso3)
-    setSubdivisionLoadingCount(c => c + 1)
+    setPendingLoads(c => c + 1)
     loadAdmin2(iso3).then(features => {
-      if (features.length > 0) {
-        setAdmin2(prev => [...prev, ...features])
-      }
-      setSubdivisionLoadingCount(c => c - 1)
+      if (features.length > 0) setAdmin2(prev => [...prev, ...features])
+      setPendingLoads(c => c - 1)
     })
   }, [])
 
-  const handleCountryHit = useCallback((countryName) => {
+  // Eagerly load admin1 + admin2 for a country (called on hover and on country select)
+  const prefetchSubdivisions = useCallback((countryName) => {
     const iso3 = getISO3ForCountry(countryName)
     triggerAdmin1Load(iso3)
     triggerAdmin2Load(iso3)
   }, [triggerAdmin1Load, triggerAdmin2Load])
+
+  // --- Overlay handlers ---
 
   const handleSelect = useCallback((item) => {
     const id = nextIdRef.current++
@@ -234,7 +255,7 @@ export default function MapView() {
     const layer = L.geoJSON(item.feature)
     setFitBounds(layer.getBounds())
 
-    // Auto-add label with the smallest-level name
+    // Auto-add label at the region centroid
     const position = getCentroid(item.feature)
     const nlName = item.nlName || ''
     const label = {
@@ -248,11 +269,8 @@ export default function MapView() {
     }
     setLabels(prev => [...prev, label])
 
-    // Trigger A: load subdivisions when a country is selected
-    if (item.kind === 'country') {
-      handleCountryHit(item.name)
-    }
-  }, [handleCountryHit, useNativeNames])
+    if (item.kind === 'country') prefetchSubdivisions(item.name)
+  }, [prefetchSubdivisions, useNativeNames])
 
   const handleOverlayClick = useCallback((id) => {
     setSelectedId(id)
@@ -260,21 +278,39 @@ export default function MapView() {
   }, [])
 
   const handleStyleUpdate = useCallback((id, updates) => {
-    setOverlays(prev =>
-      prev.map(o => (o.id === id ? { ...o, ...updates } : o))
-    )
+    setOverlays(prev => prev.map(o => (o.id === id ? { ...o, ...updates } : o)))
   }, [])
+
+  const handleRemoveOverlay = useCallback((id) => {
+    setOverlays(prev => prev.filter(x => x.id !== id))
+    setLabels(prev => prev.filter(l => l.overlayId !== id))
+    if (selectedId === id) setSelectedId(null)
+  }, [selectedId])
+
+  const handleResetAll = useCallback(() => {
+    setOverlays([])
+    setLabels([])
+    setAdmin1([])
+    setAdmin2([])
+    admin1LoadedRef.current.clear()
+    admin2LoadedRef.current.clear()
+    clearSubdivisionCache()
+    setSelectedId(null)
+    setSelectedCustomLabelId(null)
+    localStorage.removeItem(STORAGE_KEY)
+  }, [])
+
+  // --- Label handlers ---
 
   const handleAddLabel = useCallback((overlayId) => {
     const overlay = overlays.find(o => o.id === overlayId)
     if (!overlay) return
-    const position = getCentroid(overlay.feature)
     const label = {
       id: `label-${nextLabelIdRef.current++}`,
       overlayId,
       text: overlay.name,
       nlName: '',
-      position,
+      position: getCentroid(overlay.feature),
       fontSize: 14,
       color: '#1f2937',
     }
@@ -285,7 +321,7 @@ export default function MapView() {
     setLabels(prev =>
       prev.map(l => {
         if (l.id !== labelId) return l
-        // When native names toggle is on, editing text should update nlName
+        // When native names mode is on, editing text should also update nlName
         if (useNativeNames && 'text' in updates && l.nlName) {
           return { ...l, ...updates, nlName: updates.text }
         }
@@ -306,9 +342,7 @@ export default function MapView() {
   }, [labels])
 
   const handleLabelMove = useCallback((labelId, position) => {
-    setLabels(prev =>
-      prev.map(l => (l.id === labelId ? { ...l, position } : l))
-    )
+    setLabels(prev => prev.map(l => (l.id === labelId ? { ...l, position } : l)))
   }, [])
 
   const handleRemoveLabel = useCallback((labelId) => {
@@ -335,33 +369,7 @@ export default function MapView() {
     setLabels(prev => [...prev, label])
   }, [])
 
-  const handleResetAll = useCallback(() => {
-    setOverlays([])
-    setLabels([])
-    setAdmin1([])
-    setAdmin2([])
-    admin1LoadedRef.current.clear()
-    admin2LoadedRef.current.clear()
-    clearSubdivisionCache()
-    setSelectedId(null)
-    setSelectedCustomLabelId(null)
-    localStorage.removeItem(STORAGE_KEY)
-  }, [])
-
-  const handleRemoveOverlay = useCallback((id) => {
-    setOverlays(prev => prev.filter(x => x.id !== id))
-    setLabels(prev => prev.filter(l => l.overlayId !== id))
-    if (selectedId === id) setSelectedId(null)
-  }, [selectedId])
-
-  const mapRef = useRef(null)
-  const fileInputRef = useRef(null)
-  const [hideUI, setHideUI] = useState(false)
-  const [searchHoveredItem, setSearchHoveredItem] = useState(null)
-  const [importError, setImportError] = useState(null)
-  const [hover, setHover] = useState({})
-  const hoverOn = key => () => setHover(h => ({ ...h, [key]: true }))
-  const hoverOff = key => () => setHover(h => ({ ...h, [key]: false }))
+  // --- Import / Export ---
 
   const handleExport = useCallback(() => {
     const data = JSON.stringify({ version: DATA_VERSION, overlays: stripFeatures(overlays), labels }, null, 2)
@@ -392,7 +400,7 @@ export default function MapView() {
         const resolved = await resolveOverlays(data.overlays)
         setOverlays(resolved)
         setLabels(data.labels)
-        dataLoadedRef.current = true
+        isHydratedRef.current = true
         saveData(resolved, data.labels)
         setSelectedId(null)
         setSelectedCustomLabelId(null)
@@ -406,23 +414,15 @@ export default function MapView() {
     e.target.value = ''
   }, [])
 
-  useEffect(() => {
-    if (!hideUI) return
-    const handleKeyDown = (e) => {
-      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return
-      setHideUI(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [hideUI])
+  // --- Derived values ---
 
-  const displayLabels = useNativeNames
+  const visibleLabels = useNativeNames
     ? labels.map(l => ({ ...l, text: l.nlName || l.text }))
     : labels
 
   const selectedOverlay = overlays.find(o => o.id === selectedId)
-  const selectedLabels = displayLabels.filter(l => l.overlayId === selectedId)
-  const selectedCustomLabel = selectedCustomLabelId ? displayLabels.find(l => l.id === selectedCustomLabelId) : null
+  const selectedLabels = visibleLabels.filter(l => l.overlayId === selectedId)
+  const selectedCustomLabel = selectedCustomLabelId ? visibleLabels.find(l => l.id === selectedCustomLabelId) : null
 
   return (
     <div className="w-full h-full relative">
@@ -442,9 +442,9 @@ export default function MapView() {
           attribution={baseMap.attribution}
           url={baseMap.url}
         />
-        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={handleCountryHit} disabled={hideUI} searchHoveredItem={searchHoveredItem} />
+        <HoverLayer countries={countries} admin1={admin1} overlays={overlays} onSelect={handleSelect} onCountryHover={prefetchSubdivisions} disabled={hideUI} searchHoveredItem={searchHoveredItem} />
         <RegionLayer overlays={overlays} onOverlayClick={handleOverlayClick} />
-        <LabelLayer labels={labelsHidden ? [] : displayLabels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
+        <LabelLayer labels={labelsHidden ? [] : visibleLabels} onLabelMove={handleLabelMove} onLabelClick={handleLabelClick} />
         <MapRef mapRef={mapRef} />
         <FitBounds bounds={fitBounds} />
       </MapContainer>
@@ -454,9 +454,9 @@ export default function MapView() {
         countries={countries}
         admin1={admin1}
         admin2={admin2}
-        admin2Loading={subdivisionLoadingCount > 0}
+        admin2Loading={pendingLoads > 0}
         onSelect={handleSelect}
-        onCountryHit={handleCountryHit}
+        onCountryHit={prefetchSubdivisions}
         onAddCustomLabel={handleAddCustomLabel}
         onSearchHover={setSearchHoveredItem}
       />
