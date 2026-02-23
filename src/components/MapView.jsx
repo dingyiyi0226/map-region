@@ -9,6 +9,7 @@ import CustomLabelPanel from './CustomLabelPanel'
 import HoverLayer from './HoverLayer'
 import { loadCountries, getISO3ForCountry, getCacheStats, resolveOverlays } from '../data/geo'
 import { useGeoData } from '../hooks/useGeoData'
+import { usePersistence, loadSavedData } from '../hooks/usePersistence'
 
 const BASE_MAPS = [
   { id: 'carto-light', name: 'Light', url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://carto.com/">CARTO</a>' },
@@ -17,32 +18,6 @@ const BASE_MAPS = [
   { id: 'osm', name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' },
   { id: 'opentopomap', name: 'Terrain', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>' },
 ]
-
-const STORAGE_KEY = 'map-region-data'
-const DATA_VERSION = 1
-
-function loadSavedData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw)
-  } catch {
-    return null
-  }
-}
-
-function stripFeatures(overlays) {
-  // eslint-disable-next-line no-unused-vars
-  return overlays.map(({ feature, ...rest }) => rest)
-}
-
-function saveData(overlays, labels) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ overlays: stripFeatures(overlays), labels }))
-  } catch (e) {
-    console.warn('Failed to save data:', e.message)
-  }
-}
 
 // Captures the Leaflet map instance into a ref for imperative access
 function MapRef({ mapRef }) {
@@ -109,9 +84,7 @@ export default function MapView() {
   const nextIdRef = useRef(1)
   const nextLabelIdRef = useRef(1)
   const mapRef = useRef(null)
-  const fileInputRef = useRef(null)
   const baseMapRef = useRef(null)
-  const isHydratedRef = useRef(false) // prevents saving to localStorage before the initial load finishes
 
   // --- Geographic data ---
   const {
@@ -130,6 +103,15 @@ export default function MapView() {
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // --- Persistence (auto-save, import, export) ---
+  const {
+    importError, setImportError,
+    fileInputRef,
+    isHydratedRef,
+    handleExport, handleImport,
+    clearSavedData,
+  } = usePersistence({ overlays, labels, setOverlays, setLabels, nextIdRef, nextLabelIdRef, setSelectedId, setSelectedCustomLabelId, setLoading })
+
   // --- UI state ---
   const [useNativeNames, setUseNativeNames] = useState(false)
   const [labelsHidden, setLabelsHidden] = useState(false)
@@ -137,7 +119,6 @@ export default function MapView() {
   const [baseMapOpen, setBaseMapOpen] = useState(false)
   const [hideUI, setHideUI] = useState(false)
   const [searchHoveredItem, setSearchHoveredItem] = useState(null)
-  const [importError, setImportError] = useState(null)
   const [hover, setHover] = useState({})
   const hoverOn = key => () => setHover(h => ({ ...h, [key]: true }))
   const hoverOff = key => () => setHover(h => ({ ...h, [key]: false }))
@@ -164,13 +145,9 @@ export default function MapView() {
       setLoading(false)
     }
     init().catch(() => setLoading(false))
+  // isHydratedRef is a stable ref object — omitting it from deps is intentional
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setCountries])
-
-  // Auto-save on changes, but skip during initial hydration
-  useEffect(() => {
-    if (!isHydratedRef.current) return
-    saveData(overlays, labels)
-  }, [overlays, labels])
 
   // Close basemap dropdown on outside click
   useEffect(() => {
@@ -267,8 +244,8 @@ export default function MapView() {
     resetGeoData()
     setSelectedId(null)
     setSelectedCustomLabelId(null)
-    localStorage.removeItem(STORAGE_KEY)
-  }, [resetGeoData])
+    clearSavedData()
+  }, [resetGeoData, clearSavedData])
 
   // --- Label handlers ---
 
@@ -337,51 +314,6 @@ export default function MapView() {
       color: '#1f2937',
     }
     setLabels(prev => [...prev, label])
-  }, [])
-
-  // --- Import / Export ---
-
-  const handleExport = useCallback(() => {
-    const data = JSON.stringify({ version: DATA_VERSION, overlays: stripFeatures(overlays), labels }, null, 2)
-    const blob = new Blob([data], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `map-region-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    console.info(`[map-region] Exported ${overlays.length} overlays, ${labels.length} labels`)
-  }, [overlays, labels])
-
-  const handleImport = useCallback((e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImportError(null)
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      try {
-        const data = JSON.parse(ev.target.result)
-        if (!data.overlays || !data.labels) return
-        if (data.version !== DATA_VERSION) {
-          setImportError(`Incompatible file version (got ${data.version ?? 'none'}, expected ${DATA_VERSION})`)
-          return
-        }
-        setLoading(true)
-        const resolved = await resolveOverlays(data.overlays)
-        setOverlays(resolved)
-        setLabels(data.labels)
-        isHydratedRef.current = true
-        saveData(resolved, data.labels)
-        setSelectedId(null)
-        setSelectedCustomLabelId(null)
-        nextIdRef.current = Math.max(0, ...resolved.map(o => o.id)) + 1
-        nextLabelIdRef.current = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
-        console.info(`[map-region] Imported ${resolved.length} overlays, ${data.labels.length} labels (${data.overlays.length - resolved.length} unresolved)`)
-        setLoading(false)
-      } catch (e) { console.warn('[map-region] Import failed:', e.message); setLoading(false) }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
   }, [])
 
   // --- Derived values ---
