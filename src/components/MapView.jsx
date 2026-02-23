@@ -128,12 +128,9 @@ export default function MapView() {
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
   const [useNativeNames, setUseNativeNames] = useState(false)
-  const [nativeNameHover, setNativeNameHover] = useState(false)
   const [labelsHidden, setLabelsHidden] = useState(false)
-  const [labelsHiddenHover, setLabelsHiddenHover] = useState(false)
   const [baseMap, setBaseMap] = useState(BASE_MAPS[0])
   const [baseMapOpen, setBaseMapOpen] = useState(false)
-  const [baseMapHover, setBaseMapHover] = useState(false)
   const baseMapRef = useRef(null)
 
   useEffect(() => {
@@ -359,14 +356,12 @@ export default function MapView() {
 
   const mapRef = useRef(null)
   const fileInputRef = useRef(null)
-  const [resetHover, setResetHover] = useState(false)
-  const [helpHover, setHelpHover] = useState(false)
   const [hideUI, setHideUI] = useState(false)
   const [searchHoveredItem, setSearchHoveredItem] = useState(null)
-  const [hideUIHover, setHideUIHover] = useState(false)
-  const [exportHover, setExportHover] = useState(false)
-  const [importHover, setImportHover] = useState(false)
   const [importError, setImportError] = useState(null)
+  const [hover, setHover] = useState({})
+  const hoverOn = key => () => setHover(h => ({ ...h, [key]: true }))
+  const hoverOff = key => () => setHover(h => ({ ...h, [key]: false }))
 
   const handleExport = useCallback(() => {
     const data = JSON.stringify({ version: DATA_VERSION, overlays: stripFeatures(overlays), labels }, null, 2)
@@ -474,15 +469,15 @@ export default function MapView() {
         )}
         <div
           className="relative"
-          onMouseEnter={() => setHelpHover(true)}
-          onMouseLeave={() => setHelpHover(false)}
+          onMouseEnter={hoverOn('help')}
+          onMouseLeave={hoverOff('help')}
         >
           <button className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01" />
             </svg>
           </button>
-          {helpHover && (
+          {hover.help && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[11px] rounded-lg px-3 py-2.5 shadow-lg w-56 leading-relaxed">
                 <div className="font-medium mb-1.5">How to use</div>
@@ -501,8 +496,8 @@ export default function MapView() {
         </div>
         <div
           className="relative"
-          onMouseEnter={() => setHideUIHover(true)}
-          onMouseLeave={() => setHideUIHover(false)}
+          onMouseEnter={hoverOn('hideUI')}
+          onMouseLeave={hoverOff('hideUI')}
         >
           <button
             onClick={() => setHideUI(true)}
@@ -512,7 +507,7 @@ export default function MapView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18" />
             </svg>
           </button>
-          {hideUIHover && (
+          {hover.hideUI && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 Hide UI for screenshot (press any key to show)
@@ -524,8 +519,8 @@ export default function MapView() {
         <div
           className="relative"
           ref={baseMapRef}
-          onMouseEnter={() => setBaseMapHover(true)}
-          onMouseLeave={() => setBaseMapHover(false)}
+          onMouseEnter={hoverOn('baseMap')}
+          onMouseLeave={hoverOff('baseMap')}
         >
           <button
             onClick={() => setBaseMapOpen(v => !v)}
@@ -535,7 +530,7 @@ export default function MapView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
           </button>
-          {baseMapHover && !baseMapOpen && (
+          {hover.baseMap && !baseMapOpen && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 Base map style
@@ -563,8 +558,8 @@ export default function MapView() {
         </div>
         <div
           className="relative"
-          onMouseEnter={() => setNativeNameHover(true)}
-          onMouseLeave={() => setNativeNameHover(false)}
+          onMouseEnter={hoverOn('nativeName')}
+          onMouseLeave={hoverOff('nativeName')}
         >
           <button
             onClick={() => setUseNativeNames(v => !v)}
@@ -574,7 +569,7 @@ export default function MapView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
             </svg>
           </button>
-          {nativeNameHover && (
+          {hover.nativeName && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 {useNativeNames ? 'Switch to English names' : 'Switch to native names'}
@@ -585,8 +580,8 @@ export default function MapView() {
         </div>
         <div
           className="relative"
-          onMouseEnter={() => setLabelsHiddenHover(true)}
-          onMouseLeave={() => setLabelsHiddenHover(false)}
+          onMouseEnter={hoverOn('labelsHidden')}
+          onMouseLeave={hoverOff('labelsHidden')}
         >
           <button
             onClick={() => setLabelsHidden(v => !v)}
@@ -596,7 +591,7 @@ export default function MapView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
             </svg>
           </button>
-          {labelsHiddenHover && (
+          {hover.labelsHidden && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 {labelsHidden ? 'Show all labels' : 'Hide all labels'}
@@ -607,8 +602,8 @@ export default function MapView() {
         </div>
         <div
           className="relative"
-          onMouseEnter={() => setExportHover(true)}
-          onMouseLeave={() => setExportHover(false)}
+          onMouseEnter={hoverOn('export')}
+          onMouseLeave={hoverOff('export')}
         >
           <button
             onClick={handleExport}
@@ -618,7 +613,7 @@ export default function MapView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
             </svg>
           </button>
-          {exportHover && (
+          {hover.export && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 Export data
@@ -629,8 +624,8 @@ export default function MapView() {
         </div>
         <div
           className="relative"
-          onMouseEnter={() => setImportHover(true)}
-          onMouseLeave={() => setImportHover(false)}
+          onMouseEnter={hoverOn('import')}
+          onMouseLeave={hoverOff('import')}
         >
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -647,7 +642,7 @@ export default function MapView() {
             onChange={handleImport}
             className="hidden"
           />
-          {importHover && (
+          {hover.import && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                 Import data
@@ -659,8 +654,8 @@ export default function MapView() {
         {overlays.length > 0 && (<>
           <div
             className="relative"
-            onMouseEnter={() => setResetHover(true)}
-            onMouseLeave={() => setResetHover(false)}
+            onMouseEnter={hoverOn('reset')}
+            onMouseLeave={hoverOff('reset')}
           >
             <button
               onClick={handleResetAll}
@@ -671,7 +666,7 @@ export default function MapView() {
               </svg>
               Reset
             </button>
-            <CacheTooltip visible={resetHover} overlayCount={overlays.length} labelCount={labels.length} />
+            <CacheTooltip visible={hover.reset} overlayCount={overlays.length} labelCount={labels.length} />
           </div>
         </>)}
       </div>
