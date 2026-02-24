@@ -2,11 +2,24 @@ import { useCallback } from 'react'
 import { X } from 'lucide-react'
 
 const DASH_OPTIONS = [
-  { label: 'Solid', value: null },
-  { label: 'Dashed', value: '8 4' },
-  { label: 'Dotted', value: '2 4' },
-  { label: 'Dash-dot', value: '8 4 2 4' },
+  { label: 'Solid',    value: null,        dashArray: 'none' },
+  { label: 'Dashed',   value: '8 4',       dashArray: '8 4' },
+  { label: 'Dotted',   value: '2 4',       dashArray: '2 4' },
+  { label: 'Dash-dot', value: '8 4 2 4',   dashArray: '8 4 2 4' },
 ]
+
+function DashIcon({ dashArray }) {
+  return (
+    <svg width="28" height="10" viewBox="0 0 28 10" className="overflow-visible">
+      <line
+        x1="2" y1="5" x2="26" y2="5"
+        stroke="currentColor" strokeWidth="2"
+        strokeDasharray={dashArray}
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
 
 // Returns { value: firstValue, mixed: boolean }
 function field(items, getter) {
@@ -117,14 +130,15 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onBatchLab
               {DASH_OPTIONS.map(opt => (
                 <button
                   key={opt.label}
+                  title={opt.label}
                   onClick={() => update('dashArray', opt.value)}
-                  className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+                  className={`px-1.5 py-1 rounded transition-colors ${
                     !dashArray.mixed && dashArray.value === opt.value
                       ? 'bg-gray-800 text-white'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  {opt.label}
+                  <DashIcon dashArray={opt.dashArray} />
                 </button>
               ))}
             </div>
