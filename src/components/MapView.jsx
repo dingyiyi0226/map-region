@@ -239,6 +239,7 @@ export default function MapView() {
     resetGeoData()
     setSelectedIds(new Set())
     clearSavedData()
+    setHover(h => ({ ...h, reset: false }))
   }, [resetGeoData, clearSavedData])
 
   // --- Label handlers ---
@@ -446,7 +447,7 @@ export default function MapView() {
           onMouseLeave={hoverOff('hideUI')}
         >
           <button
-            onClick={() => setHideUI(true)}
+            onClick={() => { setHideUI(true); setHover(h => ({ ...h, hideUI: false })) }}
             className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
           >
             <EyeOff className="w-3.5 h-3.5" />
