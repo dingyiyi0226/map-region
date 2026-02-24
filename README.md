@@ -2,7 +2,9 @@
 
 An interactive web tool for visualizing and styling geographic boundaries on a map — countries, states/provinces, and districts/counties.
 
-![example](example.png)
+![demo-taiwan](demo/taiwan.png)
+Taiwan map created with Map Region.
+The json file for this map can be found [here](demo/taiwan.json).
 
 ## Features
 

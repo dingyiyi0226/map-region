@@ -1,0 +1,597 @@
+{
+  "version": 1,
+  "overlays": [
+    {
+      "id": 164,
+      "name": "Kaohsiung, Taiwan",
+      "kind": "subdivision",
+      "regionName": "Kaohsiung",
+      "countryName": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 165,
+      "name": "New Taipei, New Taipei, Taiwan",
+      "kind": "admin2",
+      "regionName": "New Taipei",
+      "countryName": "Taiwan",
+      "admin1Name": "New Taipei",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 166,
+      "name": "Taipei, Taiwan",
+      "kind": "subdivision",
+      "regionName": "Taipei",
+      "countryName": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 167,
+      "name": "Keelung, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Keelung",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 168,
+      "name": "Yilan, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Yilan",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 169,
+      "name": "Hualien, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Hualien",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 170,
+      "name": "Taichung, Taiwan",
+      "kind": "subdivision",
+      "regionName": "Taichung",
+      "countryName": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 171,
+      "name": "Pingtung, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Pingtung",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 172,
+      "name": "Taitung, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Taitung",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 173,
+      "name": "Tainan, Taiwan",
+      "kind": "subdivision",
+      "regionName": "Tainan",
+      "countryName": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 174,
+      "name": "Chiayi County, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Chiayi County",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 175,
+      "name": "Chiayi City, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Chiayi City",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 176,
+      "name": "Changhua, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Changhua",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 177,
+      "name": "Nantou, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Nantou",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 178,
+      "name": "Yulin, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Yulin",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 179,
+      "name": "Miaoli, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Miaoli",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 180,
+      "name": "Hsinchu City, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Hsinchu City",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 181,
+      "name": "Hsinchu County, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Hsinchu County",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 182,
+      "name": "Taoyuan, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Taoyuan",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#aaaaaa",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 183,
+      "name": "Penghu, Taiwan, Taiwan",
+      "kind": "admin2",
+      "regionName": "Penghu",
+      "countryName": "Taiwan",
+      "admin1Name": "Taiwan",
+      "iso3": "TWN",
+      "fillColor": "#96d35f",
+      "fillOpacity": 0.25,
+      "strokeColor": "#929292",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 184,
+      "name": "Kinmen, Fujian, Taiwan",
+      "kind": "admin2",
+      "regionName": "Kinmen",
+      "countryName": "Taiwan",
+      "admin1Name": "Fujian",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#929292",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    },
+    {
+      "id": 185,
+      "name": "Lienkiang, Fujian, Taiwan",
+      "kind": "admin2",
+      "regionName": "Lienkiang",
+      "countryName": "Taiwan",
+      "admin1Name": "Fujian",
+      "iso3": "TWN",
+      "fillColor": "#3b82f6",
+      "fillOpacity": 0.25,
+      "strokeColor": "#929292",
+      "strokeWidth": 2.5,
+      "strokeOpacity": 0.6,
+      "dashArray": null
+    }
+  ],
+  "labels": [
+    {
+      "id": "label-166",
+      "overlayId": 164,
+      "text": "Kaohsiung",
+      "nlName": "高雄",
+      "position": [
+        22.97062397,
+        120.616241455
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-167",
+      "overlayId": 165,
+      "text": "New Taipei",
+      "nlName": "新北市",
+      "position": [
+        24.891419479211137,
+        121.66259765625001
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-168",
+      "overlayId": 166,
+      "text": "Taipei",
+      "nlName": "台北",
+      "position": [
+        25.070672916651105,
+        121.54724121093751
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-169",
+      "overlayId": 167,
+      "text": "Keelung",
+      "nlName": "基隆市",
+      "position": [
+        25.190029755362676,
+        121.80541992187501
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-170",
+      "overlayId": 168,
+      "text": "Yilan",
+      "nlName": "宜蘭縣",
+      "position": [
+        24.646651268005428,
+        121.64252471923828
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-171",
+      "overlayId": 169,
+      "text": "Hualien",
+      "nlName": "花蓮縣",
+      "position": [
+        23.79037129915711,
+        121.49780273437501
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-172",
+      "overlayId": 170,
+      "text": "Taichung",
+      "nlName": "台中",
+      "position": [
+        24.21690953772176,
+        120.82214355468751
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-173",
+      "overlayId": 171,
+      "text": "Pingtung",
+      "nlName": "屏東縣",
+      "position": [
+        22.370396344320053,
+        120.53100585937501
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-174",
+      "overlayId": 172,
+      "text": "Taitung",
+      "nlName": "台東縣",
+      "position": [
+        22.831883254915766,
+        121.26159667968751
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-175",
+      "overlayId": 173,
+      "text": "Tainan",
+      "nlName": "台南",
+      "position": [
+        23.148519515,
+        120.34518051500001
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-176",
+      "overlayId": 174,
+      "text": "Chiayi County",
+      "nlName": "嘉義縣",
+      "position": [
+        23.362428593408826,
+        120.47058105468751
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-177",
+      "overlayId": 175,
+      "text": "Chiayi City",
+      "nlName": "嘉義市",
+      "position": [
+        23.51362636346272,
+        120.44311523437501
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-178",
+      "overlayId": 176,
+      "text": "Changhua",
+      "nlName": "彰化縣",
+      "position": [
+        23.991271293052666,
+        120.37170410156251
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-179",
+      "overlayId": 177,
+      "text": "Nantou",
+      "nlName": "南投縣",
+      "position": [
+        23.815500848699667,
+        120.948486328125
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-180",
+      "overlayId": 178,
+      "text": "Yulin",
+      "nlName": "雲林縣",
+      "position": [
+        23.709924101604937,
+        120.38269042968751
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-181",
+      "overlayId": 179,
+      "text": "Miaoli",
+      "nlName": "苗栗縣",
+      "position": [
+        24.4971463205719,
+        120.89904785156251
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-182",
+      "overlayId": 180,
+      "text": "Hsinchu City",
+      "nlName": "新竹市",
+      "position": [
+        24.85154994418473,
+        120.81665039062501
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-183",
+      "overlayId": 181,
+      "text": "Hsinchu County",
+      "nlName": "新竹縣",
+      "position": [
+        24.64202435786401,
+        121.14624023437501
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-184",
+      "overlayId": 182,
+      "text": "Taoyuan",
+      "nlName": "桃園市",
+      "position": [
+        24.98107885823501,
+        121.22314453125
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-185",
+      "overlayId": 183,
+      "text": "Penghu",
+      "nlName": "澎湖縣",
+      "position": [
+        23.473601341247587,
+        119.50439071655285
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-186",
+      "overlayId": 184,
+      "text": "Kinmen",
+      "nlName": "金門縣",
+      "position": [
+        24.45666503906253,
+        118.3444442749024
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    },
+    {
+      "id": "label-187",
+      "overlayId": 185,
+      "text": "Lienkiang",
+      "nlName": "馬祖列島",
+      "position": [
+        26.00248714194576,
+        120.21240234375001
+      ],
+      "fontSize": 15,
+      "color": "#1f2937"
+    }
+  ]
+}
