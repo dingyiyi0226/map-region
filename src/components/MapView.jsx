@@ -328,6 +328,12 @@ export default function MapView() {
   const selectedLabels = visibleLabels.filter(l => l.overlayId === selectedId)
   const selectedCustomLabel = selectedCustomLabelId ? visibleLabels.find(l => l.id === selectedCustomLabelId) : null
 
+  const selectedLayerId = selectedId ?? selectedCustomLabelId
+  const layerItems = [
+    ...overlays.map(o => ({ type: 'overlay', id: o.id, name: o.name, fillColor: o.fillColor, strokeColor: o.strokeColor })),
+    ...labels.filter(l => l.overlayId === null).map(l => ({ type: 'label', id: l.id, name: l.text || 'Label', color: l.color })),
+  ]
+
   return (
     <div className="w-full h-full relative">
       <MapContainer
@@ -579,12 +585,15 @@ export default function MapView() {
         />
       )}
 
-      {overlays.length > 0 && (
+      {layerItems.length > 0 && (
         <LayersPanel
-          overlays={overlays}
-          selectedId={selectedId}
-          onSelect={id => { setSelectedId(id); setSelectedCustomLabelId(null) }}
-          onRemove={handleRemoveOverlay}
+          items={layerItems}
+          selectedId={selectedLayerId}
+          onSelect={item => {
+            if (item.type === 'overlay') { setSelectedId(item.id); setSelectedCustomLabelId(null) }
+            else { setSelectedCustomLabelId(item.id); setSelectedId(null) }
+          }}
+          onRemove={item => item.type === 'overlay' ? handleRemoveOverlay(item.id) : handleRemoveLabel(item.id)}
         />
       )}
       {importError && (
