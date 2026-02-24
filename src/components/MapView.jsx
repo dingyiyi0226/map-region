@@ -109,6 +109,7 @@ export default function MapView() {
     importError, setImportError,
     fileInputRef,
     isHydratedRef,
+    appendModeRef,
     handleExport, handleImport,
     clearSavedData,
   } = usePersistence({ overlays, labels, setOverlays, setLabels, nextIdRef, nextLabelIdRef, setSelectedIds, setLoading })
@@ -123,6 +124,17 @@ export default function MapView() {
   const [hover, setHover] = useState({})
   const hoverOn = key => () => setHover(h => ({ ...h, [key]: true }))
   const hoverOff = key => () => setHover(h => ({ ...h, [key]: false }))
+  const [shiftHeld, setShiftHeld] = useState(false)
+
+  useEffect(() => {
+    const down = (e) => { if (e.key === 'Shift') setShiftHeld(true) }
+    const up = (e) => { if (e.key === 'Shift') setShiftHeld(false) }
+    const blur = () => setShiftHeld(false)
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', blur)
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur) }
+  }, [])
 
   // --- Effects ---
 
@@ -565,10 +577,10 @@ export default function MapView() {
           onMouseLeave={hoverOff('import')}
         >
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs text-gray-400 shadow-lg border border-gray-200/60 hover:bg-gray-50 hover:text-gray-600 transition-colors flex items-center justify-center"
+            onClick={(e) => { appendModeRef.current = e.shiftKey; fileInputRef.current?.click() }}
+            className="bg-white/95 backdrop-blur-sm rounded-lg aspect-square py-2 px-2 text-xs shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-colors flex items-center justify-center"
           >
-            <Upload className="w-3.5 h-3.5" />
+            <Upload className={`w-3.5 h-3.5 transition-colors ${hover.import && shiftHeld ? 'text-green-500' : 'text-gray-400 hover:text-gray-600'}`} />
           </button>
           <input
             ref={fileInputRef}
@@ -580,7 +592,7 @@ export default function MapView() {
           {hover.import && (
             <div className="absolute bottom-full left-0 mb-2">
               <div className="bg-gray-800 text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
-                Import data
+                {shiftHeld ? 'Append data' : 'Import data (Shift to append)'}
                 <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
               </div>
             </div>

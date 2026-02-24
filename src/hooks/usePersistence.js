@@ -37,6 +37,7 @@ export function usePersistence({ overlays, labels, setOverlays, setLabels, nextI
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef(null)
   const isHydratedRef = useRef(false) // prevents saving before the initial load finishes
+  const appendModeRef = useRef(false) // set by caller before triggering file input
 
   // Auto-save on changes, but skip during initial hydration
   useEffect(() => {
@@ -59,6 +60,8 @@ export function usePersistence({ overlays, labels, setOverlays, setLabels, nextI
   const handleImport = useCallback((e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const appendMode = appendModeRef.current
+    appendModeRef.current = false
     setImportError(null)
     const reader = new FileReader()
     reader.onload = async (ev) => {
@@ -71,14 +74,44 @@ export function usePersistence({ overlays, labels, setOverlays, setLabels, nextI
         }
         setLoading(true)
         const resolved = await resolveOverlays(data.overlays)
-        setOverlays(resolved)
-        setLabels(data.labels)
-        isHydratedRef.current = true
-        saveData(resolved, data.labels)
-        setSelectedIds(new Set())
-        nextIdRef.current = Math.max(0, ...resolved.map(o => o.id)) + 1
-        nextLabelIdRef.current = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
-        console.info(`[map-region] Imported ${resolved.length} overlays, ${data.labels.length} labels (${data.overlays.length - resolved.length} unresolved)`)
+
+        if (appendMode) {
+          const baseOverlayId = nextIdRef.current
+          const baseLabelId = nextLabelIdRef.current
+
+          // Re-map overlay IDs to avoid conflicts with existing overlays
+          const overlayIdMap = new Map()
+          const remappedOverlays = resolved.map((o, i) => {
+            const newId = baseOverlayId + i
+            overlayIdMap.set(o.id, newId)
+            return { ...o, id: newId }
+          })
+
+          // Re-map label IDs and their overlayId references
+          const remappedLabels = data.labels.map((l, i) => ({
+            ...l,
+            id: `label-${baseLabelId + i}`,
+            overlayId: l.overlayId !== null ? (overlayIdMap.get(l.overlayId) ?? null) : null,
+          }))
+
+          nextIdRef.current = baseOverlayId + resolved.length
+          nextLabelIdRef.current = baseLabelId + data.labels.length
+          isHydratedRef.current = true
+
+          setOverlays(prev => [...prev, ...remappedOverlays])
+          setLabels(prev => [...prev, ...remappedLabels])
+          console.info(`[map-region] Appended ${resolved.length} overlays, ${data.labels.length} labels`)
+        } else {
+          setOverlays(resolved)
+          setLabels(data.labels)
+          isHydratedRef.current = true
+          saveData(resolved, data.labels)
+          setSelectedIds(new Set())
+          nextIdRef.current = Math.max(0, ...resolved.map(o => o.id)) + 1
+          nextLabelIdRef.current = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
+          console.info(`[map-region] Imported ${resolved.length} overlays, ${data.labels.length} labels (${data.overlays.length - resolved.length} unresolved)`)
+        }
+
         setLoading(false)
       } catch (e) { console.warn('[map-region] Import failed:', e.message); setLoading(false) }
     }
@@ -90,5 +123,5 @@ export function usePersistence({ overlays, labels, setOverlays, setLabels, nextI
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
-  return { importError, setImportError, fileInputRef, isHydratedRef, handleExport, handleImport, clearSavedData }
+  return { importError, setImportError, fileInputRef, isHydratedRef, appendModeRef, handleExport, handleImport, clearSavedData }
 }
