@@ -318,9 +318,13 @@ export default function MapView() {
     setOverlays(prev => prev.map(o => selectedIds.has(o.id) ? { ...o, ...updates } : o))
   }, [selectedIds])
 
+  // Updates every label that belongs to the current selection:
+  // labels attached to selected overlays + directly-selected custom labels.
   const handleBatchLabelUpdate = useCallback((updates) => {
     setLabels(prev => prev.map(l => {
-      if (l.overlayId !== null || !selectedIds.has(l.id)) return l
+      const isOverlayLabel = l.overlayId !== null && selectedIds.has(l.overlayId)
+      const isCustomLabel  = l.overlayId === null  && selectedIds.has(l.id)
+      if (!isOverlayLabel && !isCustomLabel) return l
       if (useNativeNames && 'text' in updates && l.nlName) return { ...l, ...updates, nlName: updates.text }
       return { ...l, ...updates }
     }))
@@ -357,9 +361,11 @@ export default function MapView() {
   const selectedCustomLabels = visibleLabels.filter(l => l.overlayId === null && selectedIds.has(l.id))
   const showStylePanel = selectedOverlays.length > 0
   const showCustomLabelPanel = !showStylePanel && selectedCustomLabels.length > 0
-  const stylePanelLabels = selectedOverlays.length === 1
-    ? visibleLabels.filter(l => l.overlayId === selectedOverlays[0].id)
-    : []
+  // Includes both overlay-attached labels and any directly-selected custom labels
+  const stylePanelLabels = visibleLabels.filter(l =>
+    (l.overlayId !== null && selectedIds.has(l.overlayId)) ||
+    (l.overlayId === null && selectedIds.has(l.id))
+  )
 
   const layerItems = [
     ...overlays.map(o => ({ type: 'overlay', id: o.id, name: o.name, fillColor: o.fillColor, strokeColor: o.strokeColor })),
@@ -602,6 +608,7 @@ export default function MapView() {
           overlays={selectedOverlays}
           labels={stylePanelLabels}
           onBatchUpdate={handleBatchStyleUpdate}
+          onBatchLabelUpdate={handleBatchLabelUpdate}
           onAddLabel={selectedOverlays.length === 1 ? () => handleAddLabel(selectedOverlays[0].id) : undefined}
           onLabelUpdate={handleLabelUpdate}
           onRemoveLabel={handleRemoveLabel}

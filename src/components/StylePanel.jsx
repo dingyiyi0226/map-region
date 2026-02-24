@@ -9,8 +9,8 @@ const DASH_OPTIONS = [
 ]
 
 // Returns { value: firstValue, mixed: boolean }
-function field(overlays, getter) {
-  const values = overlays.map(getter)
+function field(items, getter) {
+  const values = items.map(getter)
   return { value: values[0], mixed: !values.every(v => v === values[0]) }
 }
 
@@ -26,7 +26,7 @@ function Field({ label, mixed, children }) {
   )
 }
 
-export default function StylePanel({ overlays, labels, onBatchUpdate, onAddLabel, onLabelUpdate, onRemoveLabel, onClearLabels }) {
+export default function StylePanel({ overlays, labels, onBatchUpdate, onBatchLabelUpdate, onAddLabel, onLabelUpdate, onRemoveLabel, onClearLabels }) {
   const update = useCallback(
     (key, value) => onBatchUpdate({ [key]: value }),
     [onBatchUpdate]
@@ -35,6 +35,13 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onAddLabel
   if (!overlays || overlays.length === 0) return null
 
   const single = overlays.length === 1
+  // Per-label mode: exactly one overlay selected with no custom labels mixed into the selection.
+  // In this mode each label gets its own text editor + remove button.
+  // Any other combination (multiple overlays, or custom labels present) uses batch controls.
+  const perLabelMode = single && labels.every(l => l.overlayId !== null)
+  const batchLabelColor    = !perLabelMode && labels.length > 0 ? field(labels, l => l.color)    : null
+  const batchLabelFontSize = !perLabelMode && labels.length > 0 ? field(labels, l => l.fontSize) : null
+
   const fillColor    = field(overlays, o => o.fillColor)
   const fillOpacity  = field(overlays, o => o.fillOpacity)
   const strokeColor  = field(overlays, o => o.strokeColor)
@@ -124,7 +131,34 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onAddLabel
           </Field>
         </div>
 
-        {single && (
+        {batchLabelColor && (
+          <div className="border-t border-gray-100 pt-2.5 space-y-2">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+              Labels
+            </span>
+            <div className="bg-gray-50 rounded p-2 flex items-center gap-2">
+              <input
+                type="color"
+                value={batchLabelColor.value}
+                onChange={e => onBatchLabelUpdate({ color: e.target.value })}
+                className="w-5 h-5 rounded cursor-pointer border border-gray-200 p-0"
+                title={batchLabelColor.mixed ? 'Mixed — applies to all' : undefined}
+              />
+              <input
+                type="range"
+                min="10" max="28" step="1"
+                value={batchLabelFontSize.value}
+                onChange={e => onBatchLabelUpdate({ fontSize: parseInt(e.target.value) })}
+                className="flex-1 h-1 accent-gray-400"
+              />
+              <span className="text-[10px] text-gray-400 w-5">
+                {batchLabelFontSize.mixed ? '—' : batchLabelFontSize.value}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {perLabelMode && (
           <div className="border-t border-gray-100 pt-2.5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
