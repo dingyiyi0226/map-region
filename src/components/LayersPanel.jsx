@@ -33,7 +33,7 @@ export default function LayersPanel({ items, selectedIds, onSelect, onRemove, on
                 style={{ backgroundColor: item.fillColor, borderColor: item.strokeColor }}
               />
             ) : (
-              <Type className="w-3 h-3 shrink-0" style={{ color: item.color }} />
+              <Type className="w-3 h-3 shrink-0 text-gray-400" />
             )}
             <span className="truncate">{item.name}</span>
             <span
