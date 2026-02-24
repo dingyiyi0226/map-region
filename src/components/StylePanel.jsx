@@ -8,100 +8,111 @@ const DASH_OPTIONS = [
   { label: 'Dash-dot', value: '8 4 2 4' },
 ]
 
-function Field({ label, children }) {
+// Returns { value: firstValue, mixed: boolean }
+function field(overlays, getter) {
+  const values = overlays.map(getter)
+  return { value: values[0], mixed: !values.every(v => v === values[0]) }
+}
+
+function Field({ label, mixed, children }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-xs text-gray-500 shrink-0">{label}</span>
+      <span className="text-xs text-gray-500 shrink-0">
+        {label}
+        {mixed && <span className="text-[10px] text-gray-400 ml-1">(mixed)</span>}
+      </span>
       {children}
     </div>
   )
 }
 
-export default function StylePanel({ overlay, labels, onUpdate, onAddLabel, onLabelUpdate, onRemoveLabel, onClearLabels }) {
+export default function StylePanel({ overlays, labels, onBatchUpdate, onAddLabel, onLabelUpdate, onRemoveLabel, onClearLabels }) {
   const update = useCallback(
-    (key, value) => onUpdate(overlay.id, { [key]: value }),
-    [overlay.id, onUpdate]
+    (key, value) => onBatchUpdate({ [key]: value }),
+    [onBatchUpdate]
   )
 
-  if (!overlay) return null
+  if (!overlays || overlays.length === 0) return null
+
+  const single = overlays.length === 1
+  const fillColor    = field(overlays, o => o.fillColor)
+  const fillOpacity  = field(overlays, o => o.fillOpacity)
+  const strokeColor  = field(overlays, o => o.strokeColor)
+  const strokeOpacity = field(overlays, o => o.strokeOpacity)
+  const strokeWidth  = field(overlays, o => o.strokeWidth)
+  const dashArray    = field(overlays, o => o.dashArray)
 
   return (
     <div className="absolute bottom-4 right-4 z-[1000] w-64">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 p-3 space-y-3">
         <div className="text-xs font-medium text-gray-700 truncate">
-          {overlay.name}
+          {single ? overlays[0].name : `${overlays.length} layers`}
         </div>
 
         <div className="space-y-2.5">
-          <Field label="Fill">
+          <Field label="Fill" mixed={fillColor.mixed || fillOpacity.mixed}>
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={overlay.fillColor}
+                value={fillColor.value}
                 onChange={e => update('fillColor', e.target.value)}
                 className="w-6 h-6 rounded cursor-pointer border border-gray-200 p-0"
               />
               <input
                 type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={overlay.fillOpacity}
+                min="0" max="1" step="0.05"
+                value={fillOpacity.value}
                 onChange={e => update('fillOpacity', parseFloat(e.target.value))}
                 className="w-20 h-1 accent-gray-400"
               />
               <span className="text-[10px] text-gray-400 w-7 text-right">
-                {Math.round(overlay.fillOpacity * 100)}%
+                {fillOpacity.mixed ? '—' : `${Math.round(fillOpacity.value * 100)}%`}
               </span>
             </div>
           </Field>
 
-          <Field label="Stroke">
+          <Field label="Stroke" mixed={strokeColor.mixed || strokeOpacity.mixed}>
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={overlay.strokeColor}
+                value={strokeColor.value}
                 onChange={e => update('strokeColor', e.target.value)}
                 className="w-6 h-6 rounded cursor-pointer border border-gray-200 p-0"
               />
               <input
                 type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={overlay.strokeOpacity}
+                min="0" max="1" step="0.05"
+                value={strokeOpacity.value}
                 onChange={e => update('strokeOpacity', parseFloat(e.target.value))}
                 className="w-20 h-1 accent-gray-400"
               />
               <span className="text-[10px] text-gray-400 w-7 text-right">
-                {Math.round(overlay.strokeOpacity * 100)}%
+                {strokeOpacity.mixed ? '—' : `${Math.round(strokeOpacity.value * 100)}%`}
               </span>
             </div>
           </Field>
 
-          <Field label="Width">
+          <Field label="Width" mixed={strokeWidth.mixed}>
             <input
               type="range"
-              min="0.5"
-              max="6"
-              step="0.5"
-              value={overlay.strokeWidth}
+              min="0.5" max="6" step="0.5"
+              value={strokeWidth.value}
               onChange={e => update('strokeWidth', parseFloat(e.target.value))}
               className="w-24 h-1 accent-gray-400"
             />
             <span className="text-[10px] text-gray-400 w-5 text-right">
-              {overlay.strokeWidth}
+              {strokeWidth.mixed ? '—' : strokeWidth.value}
             </span>
           </Field>
 
-          <Field label="Style">
+          <Field label="Style" mixed={dashArray.mixed}>
             <div className="flex gap-1">
               {DASH_OPTIONS.map(opt => (
                 <button
                   key={opt.label}
                   onClick={() => update('dashArray', opt.value)}
                   className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
-                    overlay.dashArray === opt.value
+                    !dashArray.mixed && dashArray.value === opt.value
                       ? 'bg-gray-800 text-white'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
@@ -113,66 +124,66 @@ export default function StylePanel({ overlay, labels, onUpdate, onAddLabel, onLa
           </Field>
         </div>
 
-        <div className="border-t border-gray-100 pt-2.5 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
-              Labels
-            </span>
-            <div className="flex items-center gap-2">
-              {labels.length > 0 && (
-                <button
-                  onClick={onClearLabels}
-                  className="text-[10px] text-red-400 hover:text-red-600 transition-colors"
-                >
-                  Clear all
-                </button>
-              )}
-              <button
-                onClick={onAddLabel}
-                className="text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
-              >
-                + Add
-              </button>
-            </div>
-          </div>
-
-          {labels.map(label => (
-            <div key={label.id} className="space-y-1.5 bg-gray-50 rounded p-2">
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={label.text}
-                  onChange={e => onLabelUpdate(label.id, { text: e.target.value })}
-                  className="flex-1 text-xs bg-white border border-gray-200 rounded px-1.5 py-1 outline-none focus:border-blue-300"
-                />
-                <button
-                  onClick={() => onRemoveLabel(label.id)}
-                  className="text-gray-300 hover:text-gray-500 shrink-0"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
+        {single && (
+          <div className="border-t border-gray-100 pt-2.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+                Labels
+              </span>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={label.color}
-                  onChange={e => onLabelUpdate(label.id, { color: e.target.value })}
-                  className="w-5 h-5 rounded cursor-pointer border border-gray-200 p-0"
-                />
-                <input
-                  type="range"
-                  min="10"
-                  max="28"
-                  step="1"
-                  value={label.fontSize}
-                  onChange={e => onLabelUpdate(label.id, { fontSize: parseInt(e.target.value) })}
-                  className="flex-1 h-1 accent-gray-400"
-                />
-                <span className="text-[10px] text-gray-400 w-5">{label.fontSize}</span>
+                {labels.length > 0 && (
+                  <button
+                    onClick={onClearLabels}
+                    className="text-[10px] text-red-400 hover:text-red-600 transition-colors"
+                  >
+                    Clear all
+                  </button>
+                )}
+                <button
+                  onClick={onAddLabel}
+                  className="text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
+                >
+                  + Add
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+
+            {labels.map(label => (
+              <div key={label.id} className="space-y-1.5 bg-gray-50 rounded p-2">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={label.text}
+                    onChange={e => onLabelUpdate(label.id, { text: e.target.value })}
+                    className="flex-1 text-xs bg-white border border-gray-200 rounded px-1.5 py-1 outline-none focus:border-blue-300"
+                  />
+                  <button
+                    onClick={() => onRemoveLabel(label.id)}
+                    className="text-gray-300 hover:text-gray-500 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={label.color}
+                    onChange={e => onLabelUpdate(label.id, { color: e.target.value })}
+                    className="w-5 h-5 rounded cursor-pointer border border-gray-200 p-0"
+                  />
+                  <input
+                    type="range"
+                    min="10" max="28" step="1"
+                    value={label.fontSize}
+                    onChange={e => onLabelUpdate(label.id, { fontSize: parseInt(e.target.value) })}
+                    className="flex-1 h-1 accent-gray-400"
+                  />
+                  <span className="text-[10px] text-gray-400 w-5">{label.fontSize}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
