@@ -1,18 +1,30 @@
 import { X, Type } from 'lucide-react'
 
-export default function LayersPanel({ items, selectedId, onSelect, onRemove }) {
+export default function LayersPanel({ items, selectedIds, onSelect, onRemove, onSelectAll }) {
+  const allSelected = items.length > 0 && items.every(item => selectedIds.has(item.id))
+
   return (
     <div className="absolute top-4 right-4 z-[1000] w-64">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 p-2 max-h-[calc(100vh-340px)] overflow-y-auto">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400 px-2 py-1">
-          Layers
+        <div className="flex items-center justify-between px-2 py-1">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+            Layers
+          </span>
+          <button
+            onClick={onSelectAll}
+            className={`text-[10px] transition-colors ${
+              allSelected ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            All
+          </button>
         </div>
         {items.map(item => (
           <button
             key={item.id}
-            onClick={() => onSelect(item)}
+            onClick={e => onSelect(item, e.shiftKey)}
             className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 transition-colors ${
-              selectedId === item.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+              selectedIds.has(item.id) ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
             {item.type === 'overlay' ? (
