@@ -33,7 +33,7 @@ export function saveData(overlays, labels) {
  * isHydratedRef must be set to true by the caller once the initial session
  * data has been loaded, so that the auto-save effect doesn't fire prematurely.
  */
-export function usePersistence({ overlays, labels, setOverlays, setLabels, nextIdRef, nextLabelIdRef, setSelectedId, setSelectedCustomLabelId, setLoading }) {
+export function usePersistence({ overlays, labels, setOverlays, setLabels, nextIdRef, nextLabelIdRef, setSelectedIds, setLoading }) {
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef(null)
   const isHydratedRef = useRef(false) // prevents saving before the initial load finishes
@@ -75,8 +75,7 @@ export function usePersistence({ overlays, labels, setOverlays, setLabels, nextI
         setLabels(data.labels)
         isHydratedRef.current = true
         saveData(resolved, data.labels)
-        setSelectedId(null)
-        setSelectedCustomLabelId(null)
+        setSelectedIds(new Set())
         nextIdRef.current = Math.max(0, ...resolved.map(o => o.id)) + 1
         nextLabelIdRef.current = Math.max(0, ...data.labels.map(l => parseInt(l.id.replace('label-', ''), 10) || 0)) + 1
         console.info(`[map-region] Imported ${resolved.length} overlays, ${data.labels.length} labels (${data.overlays.length - resolved.length} unresolved)`)
@@ -85,7 +84,7 @@ export function usePersistence({ overlays, labels, setOverlays, setLabels, nextI
     }
     reader.readAsText(file)
     e.target.value = ''
-  }, [setOverlays, setLabels, setSelectedId, setSelectedCustomLabelId, setLoading, nextIdRef, nextLabelIdRef])
+  }, [setOverlays, setLabels, setSelectedIds, setLoading, nextIdRef, nextLabelIdRef])
 
   const clearSavedData = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)

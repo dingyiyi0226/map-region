@@ -100,8 +100,7 @@ export default function MapView() {
   // --- Session state ---
   const [overlays, setOverlays] = useState([])
   const [labels, setLabels] = useState([])
-  const [selectedId, setSelectedId] = useState(null)
-  const [selectedCustomLabelId, setSelectedCustomLabelId] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
   const [fitBounds, setFitBounds] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -112,7 +111,7 @@ export default function MapView() {
     isHydratedRef,
     handleExport, handleImport,
     clearSavedData,
-  } = usePersistence({ overlays, labels, setOverlays, setLabels, nextIdRef, nextLabelIdRef, setSelectedId, setSelectedCustomLabelId, setLoading })
+  } = usePersistence({ overlays, labels, setOverlays, setLabels, nextIdRef, nextLabelIdRef, setSelectedIds, setLoading })
 
   // --- UI state ---
   const [useNativeNames, setUseNativeNames] = useState(false)
@@ -202,8 +201,7 @@ export default function MapView() {
       dashArray: null,
     }
     setOverlays(prev => [...prev, overlay])
-    setSelectedId(id)
-    setSelectedCustomLabelId(null)
+    setSelectedIds(new Set([id]))
 
     const layer = L.geoJSON(item.feature)
     setFitBounds(layer.getBounds())
@@ -226,26 +224,20 @@ export default function MapView() {
   }, [prefetchSubdivisions, useNativeNames])
 
   const handleOverlayClick = useCallback((id) => {
-    setSelectedId(id)
-    setSelectedCustomLabelId(null)
-  }, [])
-
-  const handleStyleUpdate = useCallback((id, updates) => {
-    setOverlays(prev => prev.map(o => (o.id === id ? { ...o, ...updates } : o)))
+    setSelectedIds(new Set([id]))
   }, [])
 
   const handleRemoveOverlay = useCallback((id) => {
     setOverlays(prev => prev.filter(x => x.id !== id))
     setLabels(prev => prev.filter(l => l.overlayId !== id))
-    if (selectedId === id) setSelectedId(null)
-  }, [selectedId])
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next })
+  }, [])
 
   const handleResetAll = useCallback(() => {
     setOverlays([])
     setLabels([])
     resetGeoData()
-    setSelectedId(null)
-    setSelectedCustomLabelId(null)
+    setSelectedIds(new Set())
     clearSavedData()
   }, [resetGeoData, clearSavedData])
 
@@ -282,11 +274,9 @@ export default function MapView() {
   const handleLabelClick = useCallback((labelId) => {
     const label = labels.find(l => l.id === labelId)
     if (label && label.overlayId === null) {
-      setSelectedCustomLabelId(labelId)
-      setSelectedId(null)
+      setSelectedIds(new Set([labelId]))
     } else if (label) {
-      setSelectedId(label.overlayId)
-      setSelectedCustomLabelId(null)
+      setSelectedIds(new Set([label.overlayId]))
     }
   }, [labels])
 
@@ -296,12 +286,51 @@ export default function MapView() {
 
   const handleRemoveLabel = useCallback((labelId) => {
     setLabels(prev => prev.filter(l => l.id !== labelId))
-    setSelectedCustomLabelId(prev => prev === labelId ? null : prev)
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(labelId); return next })
   }, [])
 
   const handleClearLabels = useCallback((overlayId) => {
     setLabels(prev => prev.filter(l => l.overlayId !== overlayId))
   }, [])
+
+  // --- Multi-select handlers ---
+
+  const handleLayerSelect = useCallback((item, isShift) => {
+    setSelectedIds(prev => {
+      if (isShift) {
+        const next = new Set(prev)
+        if (next.has(item.id)) next.delete(item.id)
+        else next.add(item.id)
+        return next
+      }
+      return new Set([item.id])
+    })
+  }, [])
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedIds(new Set([
+      ...overlays.map(o => o.id),
+      ...labels.filter(l => l.overlayId === null).map(l => l.id),
+    ]))
+  }, [overlays, labels])
+
+  const handleBatchStyleUpdate = useCallback((updates) => {
+    setOverlays(prev => prev.map(o => selectedIds.has(o.id) ? { ...o, ...updates } : o))
+  }, [selectedIds])
+
+  const handleBatchLabelUpdate = useCallback((updates) => {
+    setLabels(prev => prev.map(l => {
+      if (l.overlayId !== null || !selectedIds.has(l.id)) return l
+      if (useNativeNames && 'text' in updates && l.nlName) return { ...l, ...updates, nlName: updates.text }
+      return { ...l, ...updates }
+    }))
+  }, [selectedIds, useNativeNames])
+
+  const handleRemoveSelectedLabels = useCallback(() => {
+    const toRemove = new Set(selectedIds)
+    setLabels(prev => prev.filter(l => !toRemove.has(l.id)))
+    setSelectedIds(new Set())
+  }, [selectedIds])
 
   const handleAddCustomLabel = useCallback(() => {
     const map = mapRef.current
@@ -324,11 +353,14 @@ export default function MapView() {
     ? labels.map(l => ({ ...l, text: l.nlName || l.text }))
     : labels
 
-  const selectedOverlay = overlays.find(o => o.id === selectedId)
-  const selectedLabels = visibleLabels.filter(l => l.overlayId === selectedId)
-  const selectedCustomLabel = selectedCustomLabelId ? visibleLabels.find(l => l.id === selectedCustomLabelId) : null
+  const selectedOverlays = overlays.filter(o => selectedIds.has(o.id))
+  const selectedCustomLabels = visibleLabels.filter(l => l.overlayId === null && selectedIds.has(l.id))
+  const showStylePanel = selectedOverlays.length > 0
+  const showCustomLabelPanel = !showStylePanel && selectedCustomLabels.length > 0
+  const stylePanelLabels = selectedOverlays.length === 1
+    ? visibleLabels.filter(l => l.overlayId === selectedOverlays[0].id)
+    : []
 
-  const selectedLayerId = selectedId ?? selectedCustomLabelId
   const layerItems = [
     ...overlays.map(o => ({ type: 'overlay', id: o.id, name: o.name, fillColor: o.fillColor, strokeColor: o.strokeColor })),
     ...labels.filter(l => l.overlayId === null).map(l => ({ type: 'label', id: l.id, name: l.text || 'Label', color: l.color })),
@@ -565,35 +597,33 @@ export default function MapView() {
         </>)}
       </div>
 
-      {selectedId && selectedOverlay && (
+      {showStylePanel && (
         <StylePanel
-          overlay={selectedOverlay}
-          labels={selectedLabels}
-          onUpdate={handleStyleUpdate}
-          onAddLabel={() => handleAddLabel(selectedId)}
+          overlays={selectedOverlays}
+          labels={stylePanelLabels}
+          onBatchUpdate={handleBatchStyleUpdate}
+          onAddLabel={selectedOverlays.length === 1 ? () => handleAddLabel(selectedOverlays[0].id) : undefined}
           onLabelUpdate={handleLabelUpdate}
           onRemoveLabel={handleRemoveLabel}
-          onClearLabels={() => handleClearLabels(selectedId)}
+          onClearLabels={selectedOverlays.length === 1 ? () => handleClearLabels(selectedOverlays[0].id) : undefined}
         />
       )}
 
-      {selectedCustomLabel && (
+      {showCustomLabelPanel && (
         <CustomLabelPanel
-          label={selectedCustomLabel}
-          onUpdate={handleLabelUpdate}
-          onRemove={handleRemoveLabel}
+          labels={selectedCustomLabels}
+          onBatchUpdate={handleBatchLabelUpdate}
+          onRemove={handleRemoveSelectedLabels}
         />
       )}
 
       {layerItems.length > 0 && (
         <LayersPanel
           items={layerItems}
-          selectedId={selectedLayerId}
-          onSelect={item => {
-            if (item.type === 'overlay') { setSelectedId(item.id); setSelectedCustomLabelId(null) }
-            else { setSelectedCustomLabelId(item.id); setSelectedId(null) }
-          }}
+          selectedIds={selectedIds}
+          onSelect={handleLayerSelect}
           onRemove={item => item.type === 'overlay' ? handleRemoveOverlay(item.id) : handleRemoveLabel(item.id)}
+          onSelectAll={handleSelectAll}
         />
       )}
       {importError && (
