@@ -9,7 +9,7 @@ export default function CustomLabelPanel({ labels, onBatchUpdate, onRemove }) {
   const mixedFontSize = !labels.every(l => l.fontSize === first.fontSize)
 
   return (
-    <div className="absolute bottom-4 right-4 z-[1000] w-64">
+    <div className="absolute bottom-4 right-4 z-[1000] w-72">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 p-3 space-y-2.5">
         <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
           {single ? 'Custom Label' : `${labels.length} Labels`}
@@ -46,7 +46,7 @@ export default function CustomLabelPanel({ labels, onBatchUpdate, onRemove }) {
               onChange={e => onBatchUpdate({ fontSize: parseInt(e.target.value) })}
               className="flex-1 h-1 accent-gray-400"
             />
-            <span className="text-[10px] text-gray-400 w-5">
+            <span className="text-[10px] text-gray-400 w-7 text-right">
               {mixedFontSize ? '—' : first.fontSize}
             </span>
             {!single && (

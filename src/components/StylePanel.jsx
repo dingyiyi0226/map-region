@@ -63,7 +63,7 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onBatchLab
   const dashArray    = field(overlays, o => o.dashArray)
 
   return (
-    <div className="absolute bottom-4 right-4 z-[1000] w-64">
+    <div className="absolute bottom-4 right-4 z-[1000] w-72">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/60 p-3 space-y-3">
         <div className="text-xs font-medium text-gray-700 truncate">
           {single ? overlays[0].name : `${overlays.length} layers`}
@@ -85,9 +85,10 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onBatchLab
                 onChange={e => update('fillOpacity', parseFloat(e.target.value))}
                 className="w-20 h-1 accent-gray-400"
               />
-              <span className="text-[10px] text-gray-400 w-7 text-right">
-                {fillOpacity.mixed ? '—' : `${Math.round(fillOpacity.value * 100)}%`}
-              </span>
+              <div className="flex text-[10px] text-gray-400">
+                <span className="w-6 text-right">{fillOpacity.mixed ? '—' : Math.round(fillOpacity.value * 100)}</span>
+                <span className="w-3">{!fillOpacity.mixed && '%'}</span>
+              </div>
             </div>
           </Field>
 
@@ -106,23 +107,27 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onBatchLab
                 onChange={e => update('strokeOpacity', parseFloat(e.target.value))}
                 className="w-20 h-1 accent-gray-400"
               />
-              <span className="text-[10px] text-gray-400 w-7 text-right">
-                {strokeOpacity.mixed ? '—' : `${Math.round(strokeOpacity.value * 100)}%`}
-              </span>
+              <div className="flex text-[10px] text-gray-400">
+                <span className="w-6 text-right">{strokeOpacity.mixed ? '—' : Math.round(strokeOpacity.value * 100)}</span>
+                <span className="w-3">{!strokeOpacity.mixed && '%'}</span>
+              </div>
             </div>
           </Field>
 
           <Field label="Width" mixed={strokeWidth.mixed}>
-            <input
-              type="range"
-              min="0.5" max="6" step="0.5"
-              value={strokeWidth.value}
-              onChange={e => update('strokeWidth', parseFloat(e.target.value))}
-              className="w-24 h-1 accent-gray-400"
-            />
-            <span className="text-[10px] text-gray-400 w-5 text-right">
-              {strokeWidth.mixed ? '—' : strokeWidth.value}
-            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="0.5" max="6" step="0.5"
+                value={strokeWidth.value}
+                onChange={e => update('strokeWidth', parseFloat(e.target.value))}
+                className="w-28 h-1 accent-gray-400"
+              />
+              <div className="flex text-[10px] text-gray-400">
+                <span className="w-6 text-right">{strokeWidth.mixed ? '—' : strokeWidth.value}</span>
+                <span className="w-3" />
+              </div>
+            </div>
           </Field>
 
           <Field label="Style" mixed={dashArray.mixed}>
@@ -165,7 +170,7 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onBatchLab
                 onChange={e => onBatchLabelUpdate({ fontSize: parseInt(e.target.value) })}
                 className="flex-1 h-1 accent-gray-400"
               />
-              <span className="text-[10px] text-gray-400 w-5">
+              <span className="text-[10px] text-gray-400 w-7 text-right">
                 {batchLabelFontSize.mixed ? '—' : batchLabelFontSize.value}
               </span>
             </div>
@@ -226,7 +231,7 @@ export default function StylePanel({ overlays, labels, onBatchUpdate, onBatchLab
                     onChange={e => onLabelUpdate(label.id, { fontSize: parseInt(e.target.value) })}
                     className="flex-1 h-1 accent-gray-400"
                   />
-                  <span className="text-[10px] text-gray-400 w-5">{label.fontSize}</span>
+                  <span className="text-[10px] text-gray-400 w-7 text-right">{label.fontSize}</span>
                 </div>
               </div>
             ))}
